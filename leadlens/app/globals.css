@@ -1,40 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* Backgrounds — clear elevation hierarchy */
-  --bg-0: #080b09;
-  --bg-1: #0c100d;
-  --bg-2: #101410;
-  --bg-3: #141a14;
-  --bg-4: #18201a;
+  --bg-0: #0a0a0a;
+  --bg-1: #111111;
+  --bg-2: #181818;
+  --bg-3: #202020;
+  --bg-4: #282828;
 
-  /* Borders — almost invisible */
-  --border-0: rgba(255,255,255,0.04);
-  --border-1: rgba(255,255,255,0.07);
-  --border-2: rgba(255,255,255,0.11);
+  --border-0: rgba(255,255,255,0.06);
+  --border-1: rgba(255,255,255,0.10);
+  --border-2: rgba(255,255,255,0.15);
 
-  /* Accent — green used sparingly */
-  --accent:        #10b981;
-  --accent-dim:    rgba(16,185,129,0.12);
-  --accent-glow:   rgba(16,185,129,0.20);
-  --accent-text:   #34d399;
-  --accent-muted:  #1a4731;
+  --accent:       #0BA5A4;
+  --accent-light: #0dcfce;
+  --accent-dim:   rgba(11,165,164,0.15);
+  --accent-glow:  rgba(11,165,164,0.25);
 
-  /* Text */
-  --t-1: #f1f5f2;
-  --t-2: #8a9e90;
-  --t-3: #4a6050;
-  --t-4: #253028;
+  --t-1: #ffffff;
+  --t-2: #a0a0a0;
+  --t-3: #606060;
+  --t-4: #303030;
 
-  /* Shadows — depth without color */
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.35);
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.40);
-  --shadow-md: 0 4px 20px rgba(0,0,0,0.50);
-  --shadow-lg: 0 8px 40px rgba(0,0,0,0.60);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.6);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.7);
 
-  /* Radius */
   --r-xs: 4px;
   --r-sm: 6px;
   --r-md: 8px;
@@ -42,11 +34,8 @@
   --r-xl: 16px;
   --r-2xl: 20px;
 
-  /* Type */
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --mono: 'JetBrains Mono', 'Fira Code', monospace;
-
-  /* Motion */
+  --font: 'Inter', -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --dur: 180ms;
 }
@@ -55,18 +44,14 @@ html, body {
   background: var(--bg-0);
   color: var(--t-1);
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.55;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 ::selection { background: var(--accent-dim); }
-
-::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-
