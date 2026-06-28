@@ -47,12 +47,12 @@ export default function Dashboard({ onLogout }) {
 
     // Split scout output into individual lead blocks
   const splitLeads = (text) => {
+    if (!text) return [text]
     const blocks = []
     let current = []
-    const lines = text.split(/\r?\n/?
-/)
-    for (const line of lines) {
-      if (/^LEAD \d+/.test(line.trim())) {
+    const allLines = text.split(String.fromCharCode(10))
+    for (const line of allLines) {
+      if (/^LEAD [0-9]+/.test(line.trim())) {
         if (current.length) blocks.push(current.join(String.fromCharCode(10)))
         current = [line]
       } else if (/^SCOUT SUMMARY/.test(line.trim())) {
@@ -62,7 +62,7 @@ export default function Dashboard({ onLogout }) {
       }
     }
     if (current.length) blocks.push(current.join(String.fromCharCode(10)))
-    return blocks.filter(b => b.includes("BUSINESS NAME"))
+    return blocks.filter(b => b.includes('BUSINESS NAME'))
   }
 
   const BULK_AGENTS = ['auditor', 'scorer', 'outreach']
