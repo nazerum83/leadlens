@@ -47,10 +47,22 @@ export default function Dashboard({ onLogout }) {
 
   // Split scout output into individual lead blocks
   const splitLeads = (text) => {
-    // Split on "LEAD N" at start of line or after newline, stop before SCOUT SUMMARY
-    const cleaned = text.split(/SCOUT SUMMARY/i)[0] // remove summary section
-    const blocks = cleaned.split(/(?=\nLEAD\s+\d+|^LEAD\s+\d+)/im).filter(b => b.trim() && /LEAD\s+\d+/i.test(b))
-    return blocks.length > 1 ? blocks : [text]
+    const lines = text.split('
+')
+    const leads = []
+    let current = []
+    for (const line of lines) {
+      if (/^LEAD d+/.test(line.trim()) && current.length > 0) {
+        leads.push(current.join('
+'))
+        current = []
+      }
+        current.push(line)
+      }
+    }
+    if (current.length > 0) leads.push(current.join('
+'))
+    return leads.filter(b => /BUSINESS NAME/.test(b))
   }
 
   // Agents that should process each lead individually
