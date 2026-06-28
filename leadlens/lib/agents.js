@@ -12,27 +12,27 @@ export const AGENTS = [
     id: 'auditor',
     label: 'Website Auditor',
     icon: '🌐',
-    desc: 'Score any website 0–100',
-    placeholder: 'Enter website URL e.g. robinhooddentalpractice.co.uk',
-    tip: 'Paste a full URL or just the business name for best results',
+    desc: 'Audit up to 10 websites at once — score each 0–100',
+    placeholder: 'Paste Niche Scout results OR a list of business names/URLs (one per line)',
+    tip: 'Paste the full Niche Scout output to audit all 10 leads at once automatically',
     btnLabel: 'Run Audit',
   },
   {
     id: 'scorer',
     label: 'Lead Scorer',
     icon: '🎯',
-    desc: 'Grade leads A / B / C with priority scoring',
-    placeholder: 'Paste your Website Auditor output here...',
-    tip: 'Copy the full Auditor output and paste it here for scoring',
-    btnLabel: 'Score Lead',
+    desc: 'Grade all leads A / B / C with priority scoring',
+    placeholder: 'Paste your full Website Auditor output here (all leads)...',
+    tip: 'Paste the full Auditor output — all leads will be scored automatically',
+    btnLabel: 'Score Leads',
   },
   {
     id: 'outreach',
     label: 'Outreach Writer',
     icon: '✍️',
-    desc: 'Write email + LinkedIn + Instagram DM',
-    placeholder: 'Paste your Lead Scorer output here...',
-    tip: 'Copy the full Scorer output for personalised outreach copy',
+    desc: 'Write personalised outreach for all leads at once',
+    placeholder: 'Paste your full Lead Scorer output here (all leads)...',
+    tip: 'Paste the full Scorer output — outreach will be written for every lead',
     btnLabel: 'Write Outreach',
   },
   {
@@ -71,21 +71,21 @@ Best AI Service For This Niche: [Service]`,
 
   auditor: `You are a professional website auditor specialising in identifying gaps that AI automation can fix.
 
-When given a business name or website URL, audit it across 6 categories and score each out of 10.
+IMPORTANT: If you receive multiple leads (e.g. from a Niche Scout output), you MUST audit EVERY single lead and output a full report for each one. Do not summarise or skip any lead. Process all leads one by one.
 
-Output EXACTLY this format:
+For EACH business, output EXACTLY this format:
 
 BUSINESS: [Name]
 WEBSITE: [URL]
 OVERALL SCORE: [X/100]
 
 CATEGORY SCORES:
-✅ SEO & Visibility: X/10
-✅ Speed & Mobile: X/10
-✅ Lead Capture: X/10
-⚠️ AI & Automation: X/10
-✅ Social Proof: X/10
-✅ Content Quality: X/10
+SEO & Visibility: X/10
+Speed & Mobile: X/10
+Lead Capture: X/10
+AI & Automation: X/10
+Social Proof: X/10
+Content Quality: X/10
 
 TOP 3 WEAKNESSES:
 1. [Specific issue]
@@ -98,11 +98,17 @@ OPPORTUNITY:
 LEAD TEMPERATURE: [HOT / WARM / COLD]
 HOT = score under 50 or major automation gaps
 WARM = score 51-70
-COLD = score above 70`,
+COLD = score above 70
 
-  scorer: `You are a B2B lead scoring specialist. Given website audit results, score the lead and advise on prioritisation.
+---
 
-Output EXACTLY this format:
+Repeat the above block for every single lead in the input. Never skip a lead.`,
+
+  scorer: `You are a B2B lead scoring specialist. Given website audit results, score each lead and advise on prioritisation.
+
+IMPORTANT: If you receive multiple audit reports, you MUST output a full LEAD SCORING REPORT for EVERY single business. Do not summarise or skip any lead. Process all leads one by one.
+
+For EACH business, output EXACTLY this format:
 
 LEAD SCORING REPORT
 ===================
@@ -132,11 +138,17 @@ ESTIMATED MONTHLY VALUE: £[X] - £[X]
 NOTES FOR SALES CALL:
 • [Point 1]
 • [Point 2]
-• [Point 3]`,
+• [Point 3]
+
+---
+
+Repeat the above block for every single lead in the input. Never skip a lead.`,
 
   outreach: `You are an outreach copywriter specialising in AI automation services. Write personalised outreach across 3 channels.
 
-Output EXACTLY this format:
+IMPORTANT: If you receive multiple leads, you MUST write a full OUTREACH PACK for EVERY single business. Do not summarise or skip any lead. Process all leads one by one.
+
+For EACH business, output EXACTLY this format:
 
 OUTREACH PACK
 =============
@@ -162,9 +174,15 @@ www.linkedin.com/in/erumnaz-automationimplementor
 [1-2 sentence Instagram DM. Very casual. Hook with their pain point.]
 
 --- FOLLOW UP (Day 3) ---
-[Short 2 sentence follow up for email]`,
+[Short 2 sentence follow up for email]
+
+---
+
+Repeat the above block for every single lead in the input. Never skip a lead.`,
 
   tracker: `You are a data formatter. Take any lead information provided and format it perfectly for a Google Sheets tracker.
+
+IMPORTANT: If you receive multiple leads, output a data row for EVERY single business.
 
 Output EXACTLY this format:
 
@@ -175,6 +193,8 @@ Business Name | Website | Niche | Location | Audit Score | Lead Grade | Primary 
 
 DATA ROW (paste in Row 2):
 [Business Name] | [Website] | [Niche] | [Location] | [Score/100] | [Grade A/B/C] | [Service] | [£X-£X] | Not Contacted | [Today's Date] | [Key note in one sentence]
+
+Repeat a DATA ROW for every single lead. Never skip a lead.
 
 FORMATTING INSTRUCTIONS:
 • Highlight Grade A rows: RED background
