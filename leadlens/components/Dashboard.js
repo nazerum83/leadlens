@@ -254,7 +254,7 @@ export default function Dashboard({ onLogout }) {
       const blocks = text.split(/LEAD\s+\d+/i).filter(b => b.trim())
       return blocks.map((block, i) => {
         const get = (key) => {
-          const m = block.match(new RegExp(key + '[:\\s]+(.+?)(?=\\n[A-Z\\s]+:|$)', 'is'))
+          const m = block.match(new RegExp(key + '[:\\s]+([^\\n]+)', 'i'))
           return m ? m[1].replace(/={3,}/g, '').trim() : ''
         }
         return [
