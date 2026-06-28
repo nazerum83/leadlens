@@ -160,12 +160,7 @@ export default function Dashboard({ onLogout }) {
     // ════════════════════════════════════════
     // SHEET 1 — Lead Audit (all scout leads)
     // ════════════════════════════════════════
-    const auditRows = scoutRows.map((row, i) => {
-      const biz  = row[1]
-      const site = row[2]
-      const pri  = row[6]
-      return [i + 1, biz, '', site ? 'Active' : '', '', 'None', '?', '?', pri, '', '', '', site]
-    })
+    const auditRows = scoutRows.map((row, i) => [i + 1, row[1], '', row[3] ? 'Active' : '', '', 'None', '?', '?', row[6], '', '', '', row[3]])
 
     const auditData = [
       ['ICM — AI Automation Lead Audit | Birmingham Dental Practices'],
