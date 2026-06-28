@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { AGENTS, SYSTEM_PROMPTS } from '../lib/agents'
 import styles from './Dashboard.module.css'
-import * as XLSX from 'xlsx'
+import * as XLSX from 'xlsx-js-style'
 
 const NAV_MAIN = [
   { icon: '⌂', label: 'Dashboard' },
@@ -97,53 +97,94 @@ export default function Dashboard({ onLogout }) {
     const subjectLine   = extract(outreachOut, /Subject[:\s]+(.+)/i)
     const emailBody     = outreachOut || ''
 
-    // ── TEAL header style ──
-    const tealFill  = { fgColor: { rgb: '2AABB8' } }
-    const whiteBold = { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 }, alignment: { horizontal: 'center' } }
-    const colHeader = { fill: tealFill, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 }, alignment: { horizontal: 'center', wrapText: true } }
-    const priorityHot  = { fill: { fgColor: { rgb: 'D4EDDA' } }, font: { bold: true, color: { rgb: '155724' } }, alignment: { horizontal: 'center' } }
-    const priorityWarm = { fill: { fgColor: { rgb: 'FFF3CD' } }, font: { bold: true, color: { rgb: '856404' } }, alignment: { horizontal: 'center' } }
-    const prioritySkip = { fill: { fgColor: { rgb: 'F8D7DA' } }, font: { bold: true, color: { rgb: '721C24' } }, alignment: { horizontal: 'center' } }
+    // ── TEAL header style (xlsx-js-style format) ──
+    const tealFill  = { patternType: 'solid', fgColor: { rgb: '2AABB8' } }
+    const colHeader = {
+      fill: { patternType: 'solid', fgColor: { rgb: '2AABB8' } },
+      font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+      alignment: { horizontal: 'center', wrapText: true },
+      border: {
+        bottom: { style: 'thin', color: { rgb: 'FFFFFF' } },
+        right:  { style: 'thin', color: { rgb: 'FFFFFF' } },
+      }
+    }
+    const titleStyle = {
+      fill: { patternType: 'solid', fgColor: { rgb: '2AABB8' } },
+      font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 },
+      alignment: { horizontal: 'center', vertical: 'center' }
+    }
+    const subtitleStyle = {
+      font: { italic: true, color: { rgb: '555555' }, sz: 10 },
+      alignment: { horizontal: 'center' }
+    }
+    const priorityHot  = {
+      fill: { patternType: 'solid', fgColor: { rgb: 'D4EDDA' } },
+      font: { bold: true, color: { rgb: '155724' }, sz: 11 },
+      alignment: { horizontal: 'center' }
+    }
+    const priorityWarm = {
+      fill: { patternType: 'solid', fgColor: { rgb: 'FFF3CD' } },
+      font: { bold: true, color: { rgb: '856404' }, sz: 11 },
+      alignment: { horizontal: 'center' }
+    }
+    const prioritySkip = {
+      fill: { patternType: 'solid', fgColor: { rgb: 'F8D7DA' } },
+      font: { bold: true, color: { rgb: '721C24' }, sz: 11 },
+      alignment: { horizontal: 'center' }
+    }
+    const dataCell = {
+      font: { sz: 11 },
+      alignment: { wrapText: true, vertical: 'top' },
+      border: {
+        bottom: { style: 'thin', color: { rgb: 'DDDDDD' } },
+        right:  { style: 'thin', color: { rgb: 'DDDDDD' } },
+      }
+    }
 
-    const getPriorityStyle = (p) => {
-      if (p === 'HOT')  return priorityHot
-      if (p === 'WARM') return priorityWarm
+    const getPriorityStyle = (p = '') => {
+      const u = p.toUpperCase()
+      if (u === 'HOT' || u === 'HIGH')    return priorityHot
+      if (u === 'WARM' || u === 'MEDIUM') return priorityWarm
       return prioritySkip
     }
 
+    const styleSheet = (ws, headerCols, numDataRows, titleCell, subtitleCell) => {
+      if (ws[titleCell])    ws[titleCell].s    = titleStyle
+      if (ws[subtitleCell]) ws[subtitleCell].s = subtitleStyle
+      headerCols.forEach(col => { if (ws[`${col}4`]) ws[`${col}4`].s = colHeader })
+      for (let r = 5; r < 5 + numDataRows; r++) {
+        headerCols.forEach(col => { if (ws[`${col}${r}`]) ws[`${col}${r}`].s = dataCell })
+      }
+    }
+
     // ════════════════════════════════════════
-    // SHEET 1 — Lead Audit
+    // SHEET 1 — Lead Audit (all scout leads)
     // ════════════════════════════════════════
+    const auditRows = scoutRows.map((row, i) => {
+      const biz  = row[1]
+      const site = row[2]
+      const pri  = row[6]
+      return [i + 1, biz, '', site ? 'Active' : '', '', 'None', '?', '?', pri, '', '', '', site]
+    })
+
     const auditData = [
       ['ICM — AI Automation Lead Audit | Birmingham Dental Practices'],
       [`Batch 1 of ? | Audit Date: ${new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })} | Services: AI Chatbot · AI Voice Agent · CRM · Workflow Automation`],
       [],
       ['#', 'Business Name', 'Rating', 'Website Status', 'Tech Stack', 'AI/Automation', 'Chatbot', 'Online Booking', 'Priority', 'Best Service Pitch', 'Email', 'Phone', 'Domain'],
-      [1, bizName, '', website ? 'Active' : '', '', 'None', chatbot, booking, priority, pitch, email, phone, website],
+      ...auditRows,
     ]
 
     const wsAudit = XLSX.utils.aoa_to_sheet(auditData)
-
-    // Merge title row A1:M1
     wsAudit['!merges'] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: 12 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: 12 } },
     ]
-
-    // Style title
-    if (wsAudit['A1']) { wsAudit['A1'].s = { fill: tealFill, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 }, alignment: { horizontal: 'center', vertical: 'center' } } }
-    if (wsAudit['A2']) { wsAudit['A2'].s = { font: { italic: true, sz: 10 }, alignment: { horizontal: 'center' } } }
-
-    // Style column headers (row 4 = index 3)
-    const auditHeaders = ['A','B','C','D','E','F','G','H','I','J','K','L','M']
-    auditHeaders.forEach(col => {
-      const cell = wsAudit[`${col}4`]
-      if (cell) cell.s = colHeader
+    styleSheet(wsAudit, ['A','B','C','D','E','F','G','H','I','J','K','L','M'], auditRows.length, 'A1', 'A2')
+    auditRows.forEach((row, i) => {
+      const cell = wsAudit[`I${5 + i}`]
+      if (cell) cell.s = getPriorityStyle(row[8])
     })
-
-    // Style priority cell
-    if (wsAudit['I5']) wsAudit['I5'].s = getPriorityStyle(priority)
-
     wsAudit['!cols'] = [
       { wch: 4 }, { wch: 22 }, { wch: 8 }, { wch: 14 }, { wch: 22 },
       { wch: 14 }, { wch: 10 }, { wch: 14 }, { wch: 10 },
@@ -152,14 +193,16 @@ export default function Dashboard({ onLogout }) {
     wsAudit['!rows'] = [{ hpt: 30 }, { hpt: 18 }, { hpt: 6 }, { hpt: 22 }]
 
     // ════════════════════════════════════════
-    // SHEET 2 — Email Scripts
+    // SHEET 2 — Email Scripts (all scout leads)
     // ════════════════════════════════════════
+    const emailRows = scoutRows.map((row, i) => [i + 1, row[1], row[6], '', '', ''])
+
     const emailData = [
       ['ICM — Outreach Email Scripts | HOT Leads | Batch 1'],
       ['Tone: Friendly & Conversational | Personalised per practice | From: Erum @ Insight Crafts Marketing'],
       [],
       ['#', 'Business', 'Priority', 'Subject Line', 'Email Body', 'Notes'],
-      [1, bizName, priority, subjectLine, emailBody, ''],
+      ...emailRows,
     ]
 
     const wsEmail = XLSX.utils.aoa_to_sheet(emailData)
@@ -167,22 +210,25 @@ export default function Dashboard({ onLogout }) {
       { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
     ]
-    if (wsEmail['A1']) wsEmail['A1'].s = { fill: tealFill, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 }, alignment: { horizontal: 'center', vertical: 'center' } }
-    if (wsEmail['A2']) wsEmail['A2'].s = { font: { italic: true, sz: 10 }, alignment: { horizontal: 'center' } }
-    ;['A','B','C','D','E','F'].forEach(col => { const cell = wsEmail[`${col}4`]; if (cell) cell.s = colHeader })
-    if (wsEmail['C5']) wsEmail['C5'].s = getPriorityStyle(priority)
+    styleSheet(wsEmail, ['A','B','C','D','E','F'], emailRows.length, 'A1', 'A2')
+    emailRows.forEach((row, i) => {
+      const cell = wsEmail[`C${5 + i}`]
+      if (cell) cell.s = getPriorityStyle(row[2])
+    })
     wsEmail['!cols'] = [{ wch: 4 }, { wch: 22 }, { wch: 10 }, { wch: 35 }, { wch: 70 }, { wch: 30 }]
-    wsEmail['!rows'] = [{ hpt: 30 }, { hpt: 18 }, { hpt: 6 }, { hpt: 22 }, { hpt: 80 }]
+    wsEmail['!rows'] = [{ hpt: 30 }, { hpt: 18 }, { hpt: 6 }, { hpt: 22 }]
 
     // ════════════════════════════════════════
-    // SHEET 3 — Outreach Tracker
+    // SHEET 3 — Outreach Tracker (all scout leads)
     // ════════════════════════════════════════
+    const trackerRows = scoutRows.map((row, i) => [i + 1, row[1], row[6], '', '', '—', '—', '—', '—', 'Not Started', '—'])
+
     const trackerData = [
       ['ICM — Outreach Campaign Tracker | Birmingham Dental Practices'],
       ['Update this tracker after every outreach action. Target: HOT leads first, then WARM leads.'],
       [],
       ['#', 'Business Name', 'Priority', 'Contact Name', 'Email', 'Date Sent', 'Follow Up 1', 'Follow Up 2', 'Response', 'Status', 'Notes'],
-      [1, bizName, priority, '', email, '—', '—', '—', '—', 'Not Started', '—'],
+      ...trackerRows,
     ]
 
     const wsTracker = XLSX.utils.aoa_to_sheet(trackerData)
@@ -190,10 +236,11 @@ export default function Dashboard({ onLogout }) {
       { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } },
     ]
-    if (wsTracker['A1']) wsTracker['A1'].s = { fill: tealFill, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 }, alignment: { horizontal: 'center', vertical: 'center' } }
-    if (wsTracker['A2']) wsTracker['A2'].s = { font: { italic: true, sz: 10 }, alignment: { horizontal: 'center' } }
-    ;['A','B','C','D','E','F','G','H','I','J','K'].forEach(col => { const cell = wsTracker[`${col}4`]; if (cell) cell.s = colHeader })
-    if (wsTracker['C5']) wsTracker['C5'].s = getPriorityStyle(priority)
+    styleSheet(wsTracker, ['A','B','C','D','E','F','G','H','I','J','K'], trackerRows.length, 'A1', 'A2')
+    trackerRows.forEach((row, i) => {
+      const cell = wsTracker[`C${5 + i}`]
+      if (cell) cell.s = getPriorityStyle(row[2])
+    })
     wsTracker['!cols'] = [
       { wch: 4 }, { wch: 22 }, { wch: 10 }, { wch: 18 }, { wch: 28 },
       { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 20 },
@@ -237,12 +284,9 @@ export default function Dashboard({ onLogout }) {
       { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
     ]
-    if (wsScout['A1']) wsScout['A1'].s = { fill: tealFill, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 }, alignment: { horizontal: 'center', vertical: 'center' } }
-    if (wsScout['A2']) wsScout['A2'].s = { font: { italic: true, sz: 10 }, alignment: { horizontal: 'center' } }
-    ;['A','B','C','D','E','F','G'].forEach(col => { const cell = wsScout[`${col}4`]; if (cell) cell.s = colHeader })
+    styleSheet(wsScout, ['A','B','C','D','E','F','G'], scoutRows.length, 'A1', 'A2')
     scoutRows.forEach((row, i) => {
-      const cellRef = `G${5 + i}`
-      if (wsScout[cellRef]) wsScout[cellRef].s = getPriorityStyle(row[6])
+      if (wsScout[`G${5 + i}`]) wsScout[`G${5 + i}`].s = getPriorityStyle(row[6])
     })
     wsScout['!cols'] = [
       { wch: 4 }, { wch: 25 }, { wch: 22 }, { wch: 28 },
@@ -273,17 +317,25 @@ export default function Dashboard({ onLogout }) {
     })()
 
     const gradeStyle = (g = '') => {
-      if (g.startsWith('A')) return { fill: { fgColor: { rgb: 'D4EDDA' } }, font: { bold: true, color: { rgb: '155724' } }, alignment: { horizontal: 'center' } }
-      if (g.startsWith('B')) return { fill: { fgColor: { rgb: 'FFF3CD' } }, font: { bold: true, color: { rgb: '856404' } }, alignment: { horizontal: 'center' } }
-      return { fill: { fgColor: { rgb: 'F8D7DA' } }, font: { bold: true, color: { rgb: '721C24' } }, alignment: { horizontal: 'center' } }
+      if (g.startsWith('A')) return { fill: { patternType: 'solid', fgColor: { rgb: 'D4EDDA' } }, font: { bold: true, color: { rgb: '155724' }, sz: 11 }, alignment: { horizontal: 'center' } }
+      if (g.startsWith('B')) return { fill: { patternType: 'solid', fgColor: { rgb: 'FFF3CD' } }, font: { bold: true, color: { rgb: '856404' }, sz: 11 }, alignment: { horizontal: 'center' } }
+      return { fill: { patternType: 'solid', fgColor: { rgb: 'F8D7DA' } }, font: { bold: true, color: { rgb: '721C24' }, sz: 11 }, alignment: { horizontal: 'center' } }
     }
+
+    // Build scorer rows: first row from actual scorer output, rest from scout leads
+    const scorerRows = scoutRows.map((row, i) => {
+      if (i === 0) {
+        return [i + 1, scorerBiz || row[1], auditScore, priorityScore, leadGrade, painPoints, recService, outreachAngle, monthlyValue, salesNotes]
+      }
+      return [i + 1, row[1], '', '', '', '', '', '', '', '']
+    })
 
     const scoringData = [
       ['ICM — Lead Scoring Report | AI Automation Opportunity'],
       [`Scored: ${new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })} | Powered by Claude AI | Agent: Lead Scorer`],
       [],
       ['#', 'Business Name', 'Audit Score', 'Priority Score', 'Lead Grade', 'Pain Points', 'Recommended Service', 'Outreach Angle', 'Est. Monthly Value', 'Sales Call Notes'],
-      [1, scorerBiz, auditScore, priorityScore, leadGrade, painPoints, recService, outreachAngle, monthlyValue, salesNotes],
+      ...scorerRows,
     ]
 
     const wsScorer = XLSX.utils.aoa_to_sheet(scoringData)
@@ -291,9 +343,7 @@ export default function Dashboard({ onLogout }) {
       { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } },
     ]
-    if (wsScorer['A1']) wsScorer['A1'].s = { fill: tealFill, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 }, alignment: { horizontal: 'center', vertical: 'center' } }
-    if (wsScorer['A2']) wsScorer['A2'].s = { font: { italic: true, sz: 10 }, alignment: { horizontal: 'center' } }
-    ;['A','B','C','D','E','F','G','H','I','J'].forEach(col => { const cell = wsScorer[`${col}4`]; if (cell) cell.s = colHeader })
+    styleSheet(wsScorer, ['A','B','C','D','E','F','G','H','I','J'], scorerRows.length, 'A1', 'A2')
     if (wsScorer['E5']) wsScorer['E5'].s = gradeStyle(leadGrade)
     wsScorer['!cols'] = [
       { wch: 4 },  // #
