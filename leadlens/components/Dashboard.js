@@ -45,27 +45,26 @@ export default function Dashboard({ onLogout }) {
   const activeIdx = AGENTS.findIndex(a => a.id === activeId)
   const empty = EMPTY_STATES[activeId]
 
-  // Split scout output into individual lead blocks
+    // Split scout output into individual lead blocks
   const splitLeads = (text) => {
-    const lines = text.split("
-")
-    const leads = []
+    const blocks = []
     let current = []
+    const lines = text.split(/?
+/)
     for (const line of lines) {
-      if (/^LEAD d+/.test(line.trim()) && current.length > 0) {
-        leads.push(current.join('
-'))
-        current = []
-      }
+      if (/^LEAD \d+/.test(line.trim())) {
+        if (current.length) blocks.push(current.join(String.fromCharCode(10)))
+        current = [line]
+      } else if (/^SCOUT SUMMARY/.test(line.trim())) {
+        break
+      } else {
         current.push(line)
       }
     }
-    if (current.length > 0) leads.push(current.join('
-'))
-    return leads.filter(b => /BUSINESS NAME/.test(b))
+    if (current.length) blocks.push(current.join(String.fromCharCode(10)))
+    return blocks.filter(b => b.includes("BUSINESS NAME"))
   }
 
-  // Agents that should process each lead individually
   const BULK_AGENTS = ['auditor', 'scorer', 'outreach']
 
   const callClaude = async (system, message) => {
