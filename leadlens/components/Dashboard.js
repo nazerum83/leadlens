@@ -80,8 +80,7 @@ export default function Dashboard({ onLogout }) {
 
       // ── Generic single-line extractor ──
       const get = (text, key) => {
-        const m = text.match(new RegExp(key + '[:\\s]+([^\n]+)', 'i'))
-        return m ? m[1].replace(/[=#*]+/g, '').trim() : ''
+        try { if(!text) return ''; const m = text.match(new RegExp(key + '[:\\s]+([^\n]+)', 'i')); return (m&&m[1]) ? m[1].replace(/[=#*]+/g,'').trim() : ''} catch(e){return ''}
       }
 
       // ── Multi-line block extractor ──
