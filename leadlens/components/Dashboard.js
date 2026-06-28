@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { AGENTS, SYSTEM_PROMPTS } from '../lib/agents'
 import styles from './Dashboard.module.css'
-import * as XLSX from 'xlsx-js-style'
+import * as XLSX from 'xlsx'
 
 const NAV_MAIN = [
   { icon: '⌂', label: 'Dashboard' },
@@ -97,7 +97,7 @@ export default function Dashboard({ onLogout }) {
     const subjectLine   = extract(outreachOut, /Subject[:\s]+(.+)/i)
     const emailBody     = outreachOut || ''
 
-    // ── TEAL header style (xlsx-js-style format) ──
+    // ── TEAL header style (xlsx format) ──
     const tealFill  = { patternType: 'solid', fgColor: { rgb: '2AABB8' } }
     const colHeader = {
       fill: { patternType: 'solid', fgColor: { rgb: '2AABB8' } },
