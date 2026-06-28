@@ -47,7 +47,9 @@ export default function Dashboard({ onLogout }) {
 
   // Split scout output into individual lead blocks
   const splitLeads = (text) => {
-    const blocks = text.split(/(?=LEAD\s+\d+)/i).filter(b => b.trim() && /LEAD\s+\d+/i.test(b))
+    // Split on "LEAD N" at start of line or after newline, stop before SCOUT SUMMARY
+    const cleaned = text.split(/SCOUT SUMMARY/i)[0] // remove summary section
+    const blocks = cleaned.split(/(?=\nLEAD\s+\d+|^LEAD\s+\d+)/im).filter(b => b.trim() && /LEAD\s+\d+/i.test(b))
     return blocks.length > 0 ? blocks : [text]
   }
 
