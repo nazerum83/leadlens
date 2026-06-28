@@ -86,7 +86,7 @@ export default function Dashboard({ onLogout }) {
       // ── Multi-line block extractor ──
       const getBlock = (text, startKey, endKey) => {
         const m = text.match(new RegExp(startKey + '[:\\s\\n]+([\\s\\S]+?)(?=' + endKey + '|$)', 'i'))
-        return m ? m[1].trim() : ''
+        return (m && m[1]) ? m[1].trim() : ''
       }
 
       // ════════════════════════════════
