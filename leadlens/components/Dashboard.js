@@ -47,12 +47,11 @@ export default function Dashboard({ onLogout }) {
 
     // Split scout output into individual lead blocks
   const splitLeads = (text) => {
-    if (!text) return [text]
     const blocks = []
     let current = []
-    const allLines = text.split(String.fromCharCode(10))
-    for (const line of allLines) {
-      if (/^LEAD [0-9]+/.test(line.trim())) {
+    const lines = text.split(String.fromCharCode(10))
+    for (const line of lines) {
+      if (/^LEAD \d+/.test(line.trim())) {
         if (current.length) blocks.push(current.join(String.fromCharCode(10)))
         current = [line]
       } else if (/^SCOUT SUMMARY/.test(line.trim())) {
@@ -62,7 +61,7 @@ export default function Dashboard({ onLogout }) {
       }
     }
     if (current.length) blocks.push(current.join(String.fromCharCode(10)))
-    return blocks.filter(b => b.includes('BUSINESS NAME'))
+    return blocks.filter(b => b.includes("BUSINESS NAME"))
   }
 
   const BULK_AGENTS = ['auditor', 'scorer', 'outreach']
@@ -145,7 +144,7 @@ export default function Dashboard({ onLogout }) {
       // Format: LEAD 1 \n============ \n BUSINESS NAME: ...
       // ════════════════════════════════
       const parseScout = (text) => {
-        const blocks = text.split(/\r?\n/(?:^|\n)LEAD\s+\d+/i).filter(b => b.trim())
+        const blocks = text.split(/(?:^|\n)LEAD\s+\d+/i).filter(b => b.trim())
         return blocks.map((block, i) => ({
           num:      i + 1,
           bizName:  get(block, 'BUSINESS NAME'),
@@ -163,7 +162,7 @@ export default function Dashboard({ onLogout }) {
       // Handles multiple leads if pasted together
       // ════════════════════════════════
       const parseAuditor = (text) => {
-        const blocks = text.split(/\r?\n/(?:^|\n)(?:#+\s*)?(?:LEAD\s+\d+|BUSINESS:)/i)
+        const blocks = text.split(String.fromCharCode(10))(?:#+\s*)?(?:LEAD\s+\d+|BUSINESS:)/i)
         const results = []
         // re-add the BUSINESS: prefix we split on
         const raw = text.match(/BUSINESS:[^\n]+[\s\S]*?(?=BUSINESS:|$)/gi) || [text]
@@ -193,7 +192,7 @@ export default function Dashboard({ onLogout }) {
       // ════════════════════════════════
       const parseScorer = (text) => {
         // Split on multiple reports if present
-        const blocks = text.split(/\r?\n/LEAD SCORING REPORT/i).filter(b => b.trim())
+        const blocks = text.split(String.fromCharCode(10)).filter(b => b.trim())
         return blocks.map((block, i) => ({
           num:          i + 1,
           bizName:      get(block, 'BUSINESS'),
@@ -213,7 +212,7 @@ export default function Dashboard({ onLogout }) {
       // Format: OUTREACH PACK \n BUSINESS: X \n --- EMAIL --- ...
       // ════════════════════════════════
       const parseOutreach = (text) => {
-        const blocks = text.split(/\r?\n/OUTREACH PACK/i).filter(b => b.trim())
+        const blocks = text.split(String.fromCharCode(10)).filter(b => b.trim())
         return blocks.map((block, i) => ({
           num:       i + 1,
           bizName:   get(block, 'BUSINESS'),
