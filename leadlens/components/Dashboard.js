@@ -45,25 +45,31 @@ export default function Dashboard({ onLogout }) {
   const activeIdx = AGENTS.findIndex(a => a.id === activeId)
   const empty = EMPTY_STATES[activeId]
 
-    // Split scout output into individual lead blocks
+  // Split any agent output into individual lead blocks
   const splitLeads = (text) => {
+    if (!text) return [text]
+    const nl = String.fromCharCode(10)
+    const allLines = text.split(nl)
     const blocks = []
     let current = []
-    const nl = String.fromCharCode(10)
-    const allLines = (text || '').split(nl)
+    const isNewBlock = (line) => {
+      const t = line.trim()
+      return /^LEAD [0-9]+/.test(t) || /^BUSINESS:/.test(t) || /^LEAD SCORING REPORT/.test(t) || /^OUTREACH PACK/.test(t)
+    }
     for (let i = 0; i < allLines.length; i++) {
-      const line = allLines[i].trim()
-      if (/^LEAD [0-9]+/.test(line)) {
+      const line = allLines[i]
+      if (isNewBlock(line)) {
         if (current.length > 0) blocks.push(current.join(nl))
-        current = [allLines[i]]
-      } else if (/^SCOUT SUMMARY/.test(line)) {
+        current = [line]
+      } else if (/^SCOUT SUMMARY/.test(line.trim())) {
         break
       } else {
-        current.push(allLines[i])
+        current.push(line)
       }
     }
     if (current.length > 0) blocks.push(current.join(nl))
-    return blocks.filter(function(b) { return b.indexOf('BUSINESS NAME') !== -1 })
+    const result = blocks.filter(function(b) { return b.trim().length > 20 && !/^-+$/.test(b.trim()) })
+    return result.length > 1 ? result : [text]
   }
 
   const BULK_AGENTS = ['auditor', 'scorer', 'outreach']
