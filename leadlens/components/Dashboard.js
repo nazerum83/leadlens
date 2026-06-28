@@ -115,8 +115,8 @@ export default function Dashboard({ onLogout }) {
         const blocks = text.split(/(?:^|\n)(?:#+\s*)?(?:LEAD\s+\d+|BUSINESS:)/i)
         const results = []
         // re-add the BUSINESS: prefix we split on
-        const raw = text.match(/BUSINESS:[^\n]+[\s\S]*?(?=(?:BUSINESS:|$))/gi) || []
-        raw.forEach((block, i) => {
+        const raw = text.match(/BUSINESS:[^\n]+[\s\S]*?(?=BUSINESS:|$)/gi) || [text]
+        raw.filter(b => b && b.trim()).forEach((block, i) => {
           results.push({
             num:          i + 1,
             bizName:      get(block, 'BUSINESS'),
