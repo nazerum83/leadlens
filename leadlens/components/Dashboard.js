@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { AGENTS, SYSTEM_PROMPTS } from '../lib/agents'
 import styles from './Dashboard.module.css'
+import * as XLSX from 'xlsx'
 
 const NAV_MAIN = [
   { icon: '⌂', label: 'Dashboard' },
@@ -68,6 +69,258 @@ export default function Dashboard({ onLogout }) {
     navigator.clipboard.writeText(outputs[activeId])
     setCopied(activeId)
     setTimeout(() => setCopied(''), 2000)
+  }
+
+  const exportToExcel = () => {
+    const scoutOut    = outputs['scout']    || ''
+    const auditorOut  = outputs['auditor']  || ''
+    const scorerOut   = outputs['scorer']   || ''
+    const outreachOut = outputs['outreach'] || ''
+
+    // ── helpers to extract values from agent outputs ──
+    const extract = (text, regex) => { const m = text.match(regex); return m ? m[1].trim() : '' }
+
+    const bizName   = extract(auditorOut, /BUSINESS[:\s]+(.+)/i)
+    const website   = extract(auditorOut, /WEBSITE[:\s]+(.+)/i)
+    const priority  = extract(auditorOut, /LEAD TEMPERATURE[:\s]+(HOT|WARM|COLD)/i) ||
+                      extract(scorerOut,  /LEAD TEMPERATURE[:\s]+(HOT|WARM|COLD)/i)
+    const phone     = extract(auditorOut, /PHONE[:\s]+(.+)/i)
+    const email     = extract(auditorOut, /EMAIL[:\s]+(.+)/i)
+
+    // Score fields
+    const seoScore      = extract(auditorOut, /SEO[^:]*:\s*(\d+\/10)/)
+    const speedScore    = extract(auditorOut, /Speed[^:]*:\s*(\d+\/10)/i)
+    const aiScore       = extract(auditorOut, /AI[^:]*:\s*(\d+\/10)/i)
+    const chatbot       = /chatbot/i.test(auditorOut) ? (aiScore < 4 ? '✗' : '?') : '?'
+    const booking       = /booking/i.test(auditorOut) ? '✓' : '✗'
+    const pitch         = extract(auditorOut, /ICM OPPORTUNITY[:\s\n]+(.+?)(?:\n|$)/i)
+    const subjectLine   = extract(outreachOut, /Subject[:\s]+(.+)/i)
+    const emailBody     = outreachOut || ''
+
+    // ── TEAL header style ──
+    const tealFill  = { fgColor: { rgb: '2AABB8' } }
+    const whiteBold = { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 }, alignment: { horizontal: 'center' } }
+    const colHeader = { fill: tealFill, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 }, alignment: { horizontal: 'center', wrapText: true } }
+    const priorityHot  = { fill: { fgColor: { rgb: 'D4EDDA' } }, font: { bold: true, color: { rgb: '155724' } }, alignment: { horizontal: 'center' } }
+    const priorityWarm = { fill: { fgColor: { rgb: 'FFF3CD' } }, font: { bold: true, color: { rgb: '856404' } }, alignment: { horizontal: 'center' } }
+    const prioritySkip = { fill: { fgColor: { rgb: 'F8D7DA' } }, font: { bold: true, color: { rgb: '721C24' } }, alignment: { horizontal: 'center' } }
+
+    const getPriorityStyle = (p) => {
+      if (p === 'HOT')  return priorityHot
+      if (p === 'WARM') return priorityWarm
+      return prioritySkip
+    }
+
+    // ════════════════════════════════════════
+    // SHEET 1 — Lead Audit
+    // ════════════════════════════════════════
+    const auditData = [
+      ['ICM — AI Automation Lead Audit | Birmingham Dental Practices'],
+      [`Batch 1 of ? | Audit Date: ${new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })} | Services: AI Chatbot · AI Voice Agent · CRM · Workflow Automation`],
+      [],
+      ['#', 'Business Name', 'Rating', 'Website Status', 'Tech Stack', 'AI/Automation', 'Chatbot', 'Online Booking', 'Priority', 'Best Service Pitch', 'Email', 'Phone', 'Domain'],
+      [1, bizName, '', website ? 'Active' : '', '', 'None', chatbot, booking, priority, pitch, email, phone, website],
+    ]
+
+    const wsAudit = XLSX.utils.aoa_to_sheet(auditData)
+
+    // Merge title row A1:M1
+    wsAudit['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 12 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 12 } },
+    ]
+
+    // Style title
+    if (wsAudit['A1']) { wsAudit['A1'].s = { fill: tealFill, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 }, alignment: { horizontal: 'center', vertical: 'center' } } }
+    if (wsAudit['A2']) { wsAudit['A2'].s = { font: { italic: true, sz: 10 }, alignment: { horizontal: 'center' } } }
+
+    // Style column headers (row 4 = index 3)
+    const auditHeaders = ['A','B','C','D','E','F','G','H','I','J','K','L','M']
+    auditHeaders.forEach(col => {
+      const cell = wsAudit[`${col}4`]
+      if (cell) cell.s = colHeader
+    })
+
+    // Style priority cell
+    if (wsAudit['I5']) wsAudit['I5'].s = getPriorityStyle(priority)
+
+    wsAudit['!cols'] = [
+      { wch: 4 }, { wch: 22 }, { wch: 8 }, { wch: 14 }, { wch: 22 },
+      { wch: 14 }, { wch: 10 }, { wch: 14 }, { wch: 10 },
+      { wch: 28 }, { wch: 22 }, { wch: 16 }, { wch: 22 },
+    ]
+    wsAudit['!rows'] = [{ hpt: 30 }, { hpt: 18 }, { hpt: 6 }, { hpt: 22 }]
+
+    // ════════════════════════════════════════
+    // SHEET 2 — Email Scripts
+    // ════════════════════════════════════════
+    const emailData = [
+      ['ICM — Outreach Email Scripts | HOT Leads | Batch 1'],
+      ['Tone: Friendly & Conversational | Personalised per practice | From: Erum @ Insight Crafts Marketing'],
+      [],
+      ['#', 'Business', 'Priority', 'Subject Line', 'Email Body', 'Notes'],
+      [1, bizName, priority, subjectLine, emailBody, ''],
+    ]
+
+    const wsEmail = XLSX.utils.aoa_to_sheet(emailData)
+    wsEmail['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
+    ]
+    if (wsEmail['A1']) wsEmail['A1'].s = { fill: tealFill, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 }, alignment: { horizontal: 'center', vertical: 'center' } }
+    if (wsEmail['A2']) wsEmail['A2'].s = { font: { italic: true, sz: 10 }, alignment: { horizontal: 'center' } }
+    ;['A','B','C','D','E','F'].forEach(col => { const cell = wsEmail[`${col}4`]; if (cell) cell.s = colHeader })
+    if (wsEmail['C5']) wsEmail['C5'].s = getPriorityStyle(priority)
+    wsEmail['!cols'] = [{ wch: 4 }, { wch: 22 }, { wch: 10 }, { wch: 35 }, { wch: 70 }, { wch: 30 }]
+    wsEmail['!rows'] = [{ hpt: 30 }, { hpt: 18 }, { hpt: 6 }, { hpt: 22 }, { hpt: 80 }]
+
+    // ════════════════════════════════════════
+    // SHEET 3 — Outreach Tracker
+    // ════════════════════════════════════════
+    const trackerData = [
+      ['ICM — Outreach Campaign Tracker | Birmingham Dental Practices'],
+      ['Update this tracker after every outreach action. Target: HOT leads first, then WARM leads.'],
+      [],
+      ['#', 'Business Name', 'Priority', 'Contact Name', 'Email', 'Date Sent', 'Follow Up 1', 'Follow Up 2', 'Response', 'Status', 'Notes'],
+      [1, bizName, priority, '', email, '—', '—', '—', '—', 'Not Started', '—'],
+    ]
+
+    const wsTracker = XLSX.utils.aoa_to_sheet(trackerData)
+    wsTracker['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } },
+    ]
+    if (wsTracker['A1']) wsTracker['A1'].s = { fill: tealFill, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 }, alignment: { horizontal: 'center', vertical: 'center' } }
+    if (wsTracker['A2']) wsTracker['A2'].s = { font: { italic: true, sz: 10 }, alignment: { horizontal: 'center' } }
+    ;['A','B','C','D','E','F','G','H','I','J','K'].forEach(col => { const cell = wsTracker[`${col}4`]; if (cell) cell.s = colHeader })
+    if (wsTracker['C5']) wsTracker['C5'].s = getPriorityStyle(priority)
+    wsTracker['!cols'] = [
+      { wch: 4 }, { wch: 22 }, { wch: 10 }, { wch: 18 }, { wch: 28 },
+      { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 20 },
+    ]
+    wsTracker['!rows'] = [{ hpt: 30 }, { hpt: 18 }, { hpt: 6 }, { hpt: 22 }]
+
+    // ════════════════════════════════════════
+    // SHEET 0 — Niche Scout
+    // ════════════════════════════════════════
+    const parseScoutLeads = (text) => {
+      const blocks = text.split(/LEAD\s+\d+/i).filter(b => b.trim())
+      return blocks.map((block, i) => {
+        const get = (key) => {
+          const m = block.match(new RegExp(key + '[:\\s]+(.+?)(?=\\n[A-Z\\s]+:|$)', 'is'))
+          return m ? m[1].replace(/={3,}/g, '').trim() : ''
+        }
+        return [
+          i + 1,
+          get('BUSINESS NAME'),
+          get('LOCATION'),
+          get('ESTIMATED WEBSITE'),
+          get('NICHE'),
+          get('WHY THEY NEED AI AUTOMATION'),
+          get('PRIORITY'),
+        ]
+      })
+    }
+
+    const scoutRows = parseScoutLeads(scoutOut)
+
+    const scoutData = [
+      ['ICM — Niche Scout Results | AI Lead Discovery'],
+      [`Scout Date: ${new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })} | Powered by Claude AI | Agent: Niche Scout`],
+      [],
+      ['#', 'Business Name', 'Location', 'Estimated Website', 'Niche', 'Why They Need AI Automation', 'Priority'],
+      ...scoutRows,
+    ]
+
+    const wsScout = XLSX.utils.aoa_to_sheet(scoutData)
+    wsScout['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
+    ]
+    if (wsScout['A1']) wsScout['A1'].s = { fill: tealFill, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 }, alignment: { horizontal: 'center', vertical: 'center' } }
+    if (wsScout['A2']) wsScout['A2'].s = { font: { italic: true, sz: 10 }, alignment: { horizontal: 'center' } }
+    ;['A','B','C','D','E','F','G'].forEach(col => { const cell = wsScout[`${col}4`]; if (cell) cell.s = colHeader })
+    scoutRows.forEach((row, i) => {
+      const cellRef = `G${5 + i}`
+      if (wsScout[cellRef]) wsScout[cellRef].s = getPriorityStyle(row[6])
+    })
+    wsScout['!cols'] = [
+      { wch: 4 }, { wch: 25 }, { wch: 22 }, { wch: 28 },
+      { wch: 22 }, { wch: 55 }, { wch: 10 },
+    ]
+    wsScout['!rows'] = [{ hpt: 30 }, { hpt: 18 }, { hpt: 6 }, { hpt: 22 }]
+
+    // ════════════════════════════════════════
+    // SHEET — Lead Scoring
+    // ════════════════════════════════════════
+    const scorerBiz       = extract(scorerOut, /BUSINESS[:\s]+(.+)/i)
+    const auditScore      = extract(scorerOut, /OVERALL AUDIT SCORE[:\s]+(.+)/i)
+    const priorityScore   = extract(scorerOut, /PRIORITY SCORE[:\s]+(.+)/i)
+    const leadGrade       = extract(scorerOut, /LEAD GRADE[:\s]+(.+)/i)
+    const painPoints      = (() => {
+      const m = scorerOut.match(/PAIN POINTS TO LEAD WITH[:\s\n]+([\s\S]+?)(?=RECOMMENDED SERVICE:|$)/i)
+      return m ? m[1].trim() : ''
+    })()
+    const recService      = (() => {
+      const m = scorerOut.match(/RECOMMENDED SERVICE[:\s\n]+([\s\S]+?)(?=OUTREACH ANGLE:|$)/i)
+      return m ? m[1].trim() : ''
+    })()
+    const outreachAngle   = extract(scorerOut, /OUTREACH ANGLE[:\s\n]+"?([\s\S]+?)"?(?=\n[A-Z]|$)/i)
+    const monthlyValue    = extract(scorerOut, /ESTIMATED MONTHLY VALUE[:\s]+(.+)/i)
+    const salesNotes      = (() => {
+      const m = scorerOut.match(/NOTES FOR SALES CALL[:\s\n]+([\s\S]+?)$/i)
+      return m ? m[1].trim() : ''
+    })()
+
+    const gradeStyle = (g = '') => {
+      if (g.startsWith('A')) return { fill: { fgColor: { rgb: 'D4EDDA' } }, font: { bold: true, color: { rgb: '155724' } }, alignment: { horizontal: 'center' } }
+      if (g.startsWith('B')) return { fill: { fgColor: { rgb: 'FFF3CD' } }, font: { bold: true, color: { rgb: '856404' } }, alignment: { horizontal: 'center' } }
+      return { fill: { fgColor: { rgb: 'F8D7DA' } }, font: { bold: true, color: { rgb: '721C24' } }, alignment: { horizontal: 'center' } }
+    }
+
+    const scoringData = [
+      ['ICM — Lead Scoring Report | AI Automation Opportunity'],
+      [`Scored: ${new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })} | Powered by Claude AI | Agent: Lead Scorer`],
+      [],
+      ['#', 'Business Name', 'Audit Score', 'Priority Score', 'Lead Grade', 'Pain Points', 'Recommended Service', 'Outreach Angle', 'Est. Monthly Value', 'Sales Call Notes'],
+      [1, scorerBiz, auditScore, priorityScore, leadGrade, painPoints, recService, outreachAngle, monthlyValue, salesNotes],
+    ]
+
+    const wsScorer = XLSX.utils.aoa_to_sheet(scoringData)
+    wsScorer['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } },
+    ]
+    if (wsScorer['A1']) wsScorer['A1'].s = { fill: tealFill, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 }, alignment: { horizontal: 'center', vertical: 'center' } }
+    if (wsScorer['A2']) wsScorer['A2'].s = { font: { italic: true, sz: 10 }, alignment: { horizontal: 'center' } }
+    ;['A','B','C','D','E','F','G','H','I','J'].forEach(col => { const cell = wsScorer[`${col}4`]; if (cell) cell.s = colHeader })
+    if (wsScorer['E5']) wsScorer['E5'].s = gradeStyle(leadGrade)
+    wsScorer['!cols'] = [
+      { wch: 4 },  // #
+      { wch: 25 }, // Business Name
+      { wch: 14 }, // Audit Score
+      { wch: 14 }, // Priority Score
+      { wch: 12 }, // Lead Grade
+      { wch: 50 }, // Pain Points
+      { wch: 30 }, // Recommended Service
+      { wch: 50 }, // Outreach Angle
+      { wch: 22 }, // Monthly Value
+      { wch: 55 }, // Sales Notes
+    ]
+    wsScorer['!rows'] = [{ hpt: 30 }, { hpt: 18 }, { hpt: 6 }, { hpt: 22 }, { hpt: 100 }]
+
+    // ════════════════════════════════════════
+    // BUILD WORKBOOK
+    // ════════════════════════════════════════
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, wsScout,   '🔍 Niche Scout')
+    XLSX.utils.book_append_sheet(wb, wsAudit,   '📋 Lead Audit')
+    XLSX.utils.book_append_sheet(wb, wsScorer,  '🎯 Lead Scoring')
+    XLSX.utils.book_append_sheet(wb, wsEmail,   '✉ Email Scripts')
+    XLSX.utils.book_append_sheet(wb, wsTracker, '📊 Outreach Tracker')
+
+    const fileName = `ICM_Dental_Outreach_${new Date().toISOString().slice(0, 10)}.xlsx`
+    XLSX.writeFile(wb, fileName)
   }
 
   const importFromPrev = () => {
@@ -303,7 +556,7 @@ export default function Dashboard({ onLogout }) {
                       <button className={styles.outBtn} onClick={copyOutput}>
                         {copied === activeId ? '✓ Copied' : '⎘ Copy'}
                       </button>
-                      <button className={styles.outBtn}>📊 Save to Sheets</button>
+                      <button className={styles.outBtn} onClick={exportToExcel}>📥 Export to Excel</button>
                     </div>
                   )}
                 </div>
