@@ -45,36 +45,7 @@ export default function Dashboard({ onLogout }) {
   const activeIdx = AGENTS.findIndex(a => a.id === activeId)
   const empty = EMPTY_STATES[activeId]
 
-  // Split any agent output into individual lead blocks
-  const splitLeads = (text) => {
-    if (!text) return [text]
-    const nl = String.fromCharCode(10)
-    const allLines = text.split(nl)
-    const blocks = []
-    let current = []
-    const isNewBlock = (line) => {
-      const t = line.trim()
-      return /^LEAD [0-9]+/.test(t) || /^BUSINESS:/.test(t) || /^LEAD SCORING REPORT/.test(t) || /^OUTREACH PACK/.test(t)
-    }
-    for (let i = 0; i < allLines.length; i++) {
-      const line = allLines[i]
-      if (isNewBlock(line)) {
-        if (current.length > 0) blocks.push(current.join(nl))
-        current = [line]
-      } else if (/^SCOUT SUMMARY/.test(line.trim())) {
-        break
-      } else {
-        current.push(line)
-      }
-    }
-    if (current.length > 0) blocks.push(current.join(nl))
-    const result = blocks.filter(function(b) { return b.trim().length > 20 && !/^-+$/.test(b.trim()) })
-    return result.length > 1 ? result : [text]
-  }
-
-  const BULK_AGENTS = ['auditor', 'scorer', 'outreach']
-
-  const callClaude = async (system, message) => {
+    const callClaude = async (system, message) => {
     const res = await fetch('/api/claude', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -90,38 +61,15 @@ export default function Dashboard({ onLogout }) {
     if (!input.trim() || loading[activeId]) return
     setLoading(prev => ({ ...prev, [activeId]: true }))
     setOutputs(prev => ({ ...prev, [activeId]: '' }))
-
     try {
-      // For bulk agents, split into individual leads and process each one
-      if (BULK_AGENTS.includes(activeId)) {
-        const leads = splitLeads(input)
-
-        if (leads.length > 1) {
-          // Process each lead individually and combine results
-          let combined = ''
-          for (let i = 0; i < leads.length; i++) {
-            const lead = leads[i]
-            setOutputs(prev => ({ ...prev, [activeId]: prev[activeId] + `\n⏳ Processing lead ${i + 1} of ${leads.length}...\n` }))
-            const result = await callClaude(SYSTEM_PROMPTS[activeId], lead)
-            combined += result + '\n\n---\n\n'
-            setOutputs(prev => ({ ...prev, [activeId]: combined }))
-          }
-        } else {
-          // Single lead — normal call
-          const result = await callClaude(SYSTEM_PROMPTS[activeId], input)
-          setOutputs(prev => ({ ...prev, [activeId]: result }))
-        }
-      } else {
-        // Scout, Tracker — single API call as normal
-        const result = await callClaude(SYSTEM_PROMPTS[activeId], input)
-        setOutputs(prev => ({ ...prev, [activeId]: result }))
-      }
+      const result = await callClaude(SYSTEM_PROMPTS[activeId], input)
+      setOutputs(prev => ({ ...prev, [activeId]: result }))
     } catch (err) {
       setOutputs(prev => ({ ...prev, [activeId]: 'Error: ' + err.message }))
     }
-
     setLoading(prev => ({ ...prev, [activeId]: false }))
   }
+
 
   const copyOutput = () => {
     navigator.clipboard.writeText(outputs[activeId])
@@ -131,255 +79,92 @@ export default function Dashboard({ onLogout }) {
 
   const exportToExcel = () => {
     try {
-      const scoutOut    = outputs['scout']    || ''
-      const auditorOut  = outputs['auditor']  || ''
-      const scorerOut   = outputs['scorer']   || ''
-      const outreachOut = outputs['outreach'] || ''
-
-      // ── Generic single-line extractor ──
-      const get = (text, key) => {
-        try { if(!text) return ''; const m = text.match(new RegExp(key + '[:\\s]+([^\n]+)', 'i')); return (m&&m[1]) ? m[1].replace(/[=#*]+/g,'').trim() : ''} catch(e){return ''}
+      // ── Parse markdown table helper ──
+      const parseTable = (text) => {
+        if (!text) return []
+        const lines = text.split(String.fromCharCode(10))
+        const rows = []
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim()
+          if (!line.startsWith('|')) continue
+          if (/^[|\s\-:]+$/.test(line)) continue // skip separator rows
+          const cells = line.split('|').map(function(c) { return c.trim() }).filter(function(c, idx, arr) { return idx > 0 && idx < arr.length - 1 })
+          if (cells.length > 1) rows.push(cells)
+        }
+        return rows
       }
 
-      // ── Multi-line block extractor ──
-      const getBlock = (text, startKey, endKey) => {
-        const m = text.match(new RegExp(startKey + '[:\\s\\n]+([\\s\\S]+?)(?=' + endKey + '|$)', 'i'))
-        return (m && m[1]) ? m[1].trim() : ''
-      }
+      const scoutRows    = parseTable(outputs['scout']    || '')
+      const auditorRows  = parseTable(outputs['auditor']  || '')
+      const scorerRows   = parseTable(outputs['scorer']   || '')
+      const outreachRows = parseTable(outputs['outreach'] || '')
 
-      // ════════════════════════════════
-      // PARSE: Niche Scout
-      // Format: LEAD 1 \n============ \n BUSINESS NAME: ...
-      // ════════════════════════════════
-      const parseScout = (text) => {
-        const blocks = text.split(/(?:^|\n)LEAD\s+\d+/i).filter(function(b){return b.trim()})
-        return blocks.map((block, i) => ({
-          num:      i + 1,
-          bizName:  get(block, 'BUSINESS NAME'),
-          location: get(block, 'LOCATION'),
-          website:  get(block, 'ESTIMATED WEBSITE'),
-          niche:    get(block, 'NICHE'),
-          whyAI:    get(block, 'WHY THEY NEED AI AUTOMATION'),
-          priority: get(block, 'PRIORITY'),
-        })).filter(r => r.bizName)
-      }
-
-      // ════════════════════════════════
-      // PARSE: Website Auditor
-      // Format: BUSINESS: X \n WEBSITE: X \n OVERALL SCORE: X ...
-      // Handles multiple leads if pasted together
-      // ════════════════════════════════
-      const parseAuditor = (text) => {
-        const blocks = []
-        const results = []
-        // re-add the BUSINESS: prefix we split on
-        const raw = text.match(/BUSINESS:[^\n]+[\s\S]*?(?=BUSINESS:|$)/gi) || [text]
-        raw.filter(b => b && b.trim()).forEach((block, i) => {
-          results.push({
-            num:          i + 1,
-            bizName:      get(block, 'BUSINESS'),
-            website:      get(block, 'WEBSITE'),
-            overallScore: get(block, 'OVERALL SCORE'),
-            seo:          get(block, 'SEO[^:]*'),
-            speed:        get(block, 'Speed[^:]*'),
-            leadCap:      get(block, 'Lead Capture'),
-            aiAuto:       get(block, 'AI[^:]*'),
-            socialProof:  get(block, 'Social Proof'),
-            content:      get(block, 'Content Quality'),
-            weaknesses:   getBlock(block, 'TOP 3 WEAKNESSES', 'OPPORTUNITY|ICM OPPORTUNITY|LEAD TEMP'),
-            opportunity:  getBlock(block, 'OPPORTUNITY|ICM OPPORTUNITY', 'LEAD TEMP'),
-            leadTemp:     get(block, 'LEAD TEMPERATURE'),
-          })
-        })
-        return results.filter(r => r.bizName)
-      }
-
-      // ════════════════════════════════
-      // PARSE: Lead Scorer
-      // Format: LEAD SCORING REPORT \n BUSINESS: X ...
-      // ════════════════════════════════
-      const parseScorer = (text) => {
-        // Split on multiple reports if present
-        const blocks = text.split(/LEAD SCORING REPORT/i).filter(function(b){return b.trim()})
-        return blocks.map((block, i) => ({
-          num:          i + 1,
-          bizName:      get(block, 'BUSINESS'),
-          auditScore:   get(block, 'OVERALL AUDIT SCORE'),
-          priorityScore:get(block, 'PRIORITY SCORE'),
-          grade:        get(block, 'LEAD GRADE'),
-          painPoints:   getBlock(block, 'PAIN POINTS TO LEAD WITH', 'RECOMMENDED SERVICE'),
-          service:      getBlock(block, 'RECOMMENDED SERVICE', 'OUTREACH ANGLE'),
-          angle:        get(block, 'OUTREACH ANGLE'),
-          value:        get(block, 'ESTIMATED MONTHLY VALUE'),
-          notes:        getBlock(block, 'NOTES FOR SALES CALL', '$$$'),
-        })).filter(r => r.bizName)
-      }
-
-      // ════════════════════════════════
-      // PARSE: Outreach Writer
-      // Format: OUTREACH PACK \n BUSINESS: X \n --- EMAIL --- ...
-      // ════════════════════════════════
-      const parseOutreach = (text) => {
-        const blocks = text.split(/OUTREACH PACK/i).filter(function(b){return b.trim()})
-        return blocks.map((block, i) => ({
-          num:       i + 1,
-          bizName:   get(block, 'BUSINESS'),
-          grade:     get(block, 'GRADE'),
-          service:   get(block, 'SERVICE'),
-          subject:   get(block, 'Subject'),
-          email:     getBlock(block, '--- EMAIL ---', '--- LINKEDIN'),
-          linkedin:  getBlock(block, '--- LINKEDIN DM ---', '--- INSTAGRAM'),
-          instagram: getBlock(block, '--- INSTAGRAM DM ---', '--- FOLLOW UP'),
-          followup:  getBlock(block, '--- FOLLOW UP', '$$$'),
-        })).filter(r => r.bizName)
-      }
-
-      // Run all parsers
-      const scoutLeads    = parseScout(scoutOut)
-      const auditorLeads  = parseAuditor(auditorOut)
-      const scorerLeads   = parseScorer(scorerOut)
-      const outreachLeads = parseOutreach(outreachOut)
-
-      // Use scout as base list — fallback to auditor biz names if no scout
-      const baseLeads = scoutLeads.length > 0 ? scoutLeads : auditorLeads.map(a => ({
-        num: a.num, bizName: a.bizName, location: '', website: a.website,
-        niche: '', whyAI: '', priority: a.leadTemp,
-      }))
+      // Skip header row (first row is headers)
+      const scoutData    = scoutRows.length   > 1 ? scoutRows.slice(1)    : []
+      const auditorData  = auditorRows.length > 1 ? auditorRows.slice(1)  : []
+      const scorerData   = scorerRows.length  > 1 ? scorerRows.slice(1)   : []
+      const outreachData = outreachRows.length > 1 ? outreachRows.slice(1) : []
 
       const date = new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
 
-      // ════════════════════════════════
-      // SHEET 1 — Niche Scout
-      // ════════════════════════════════
+      // ── SHEET 1: Niche Scout ──
       const scoutSheet = [
         ['ICM — Niche Scout Results | AI Lead Discovery'],
-        [`Scout Date: ${date} | Powered by Claude AI | Agent: Niche Scout`],
+        ['Scout Date: ' + date + ' | Powered by Claude AI | Agent: Niche Scout'],
         [],
         ['#', 'Business Name', 'Location', 'Estimated Website', 'Niche', 'Why They Need AI Automation', 'Priority'],
-        ...scoutLeads.map(r => [r.num, r.bizName, r.location, r.website, r.niche, r.whyAI, r.priority]),
+        ...scoutData,
       ]
 
-      // ════════════════════════════════
-      // SHEET 2 — Lead Audit
-      // Pull from auditor output; fill remaining from scout
-      // ════════════════════════════════
-      const auditMap = {}
-      auditorLeads.forEach(a => { auditMap[a.bizName.toLowerCase()] = a })
-
+      // ── SHEET 2: Lead Audit ──
       const auditSheet = [
         ['ICM — AI Automation Lead Audit | Birmingham Dental Practices'],
-        [`Batch 1 of ? | Audit Date: ${date} | Services: AI Chatbot · AI Voice Agent · CRM · Workflow Automation`],
+        ['Batch 1 of ? | Audit Date: ' + date + ' | Services: AI Chatbot · AI Voice Agent · CRM · Workflow Automation'],
         [],
-        ['#', 'Business Name', 'Website', 'Overall Score', 'SEO', 'Speed', 'Lead Capture', 'AI & Auto', 'Social Proof', 'Content', 'Top Weaknesses', 'Opportunity', 'Lead Temp'],
-        ...baseLeads.map((lead, i) => {
-          const a = auditMap[lead.bizName.toLowerCase()] || auditorLeads[i] || {}
-          return [
-            i + 1,
-            lead.bizName,
-            a.website || lead.website || '',
-            a.overallScore || '',
-            a.seo || '',
-            a.speed || '',
-            a.leadCap || '',
-            a.aiAuto || '',
-            a.socialProof || '',
-            a.content || '',
-            a.weaknesses || '',
-            a.opportunity || '',
-            a.leadTemp || lead.priority || '',
-          ]
-        }),
+        ['#', 'Business Name', 'Website', 'Overall Score', 'SEO', 'Speed', 'Lead Capture', 'AI & Auto', 'Social Proof', 'Content', 'Top Weakness', 'Lead Temp'],
+        ...auditorData,
       ]
 
-      // ════════════════════════════════
-      // SHEET 3 — Lead Scoring
-      // ════════════════════════════════
-      const scorerMap = {}
-      scorerLeads.forEach(s => { scorerMap[s.bizName.toLowerCase()] = s })
-
+      // ── SHEET 3: Lead Scoring ──
       const scoringSheet = [
         ['ICM — Lead Scoring Report | AI Automation Opportunity'],
-        [`Scored: ${date} | Powered by Claude AI | Agent: Lead Scorer`],
+        ['Scored: ' + date + ' | Powered by Claude AI | Agent: Lead Scorer'],
         [],
-        ['#', 'Business Name', 'Audit Score', 'Priority Score', 'Lead Grade', 'Pain Points', 'Recommended Service', 'Outreach Angle', 'Est. Monthly Value', 'Sales Call Notes'],
-        ...baseLeads.map((lead, i) => {
-          const s = scorerMap[lead.bizName.toLowerCase()] || scorerLeads[i] || {}
-          return [
-            i + 1,
-            lead.bizName,
-            s.auditScore || '',
-            s.priorityScore || '',
-            s.grade || '',
-            s.painPoints || '',
-            s.service || '',
-            s.angle || '',
-            s.value || '',
-            s.notes || '',
-          ]
-        }),
+        ['#', 'Business Name', 'Audit Score', 'Priority Score', 'Lead Grade', 'Pain Point', 'Recommended Service', 'Outreach Angle', 'Est. Monthly Value', 'Sales Note'],
+        ...scorerData,
       ]
 
-      // ════════════════════════════════
-      // SHEET 4 — Email Scripts
-      // ════════════════════════════════
-      const outreachMap = {}
-      outreachLeads.forEach(o => { outreachMap[o.bizName.toLowerCase()] = o })
-
+      // ── SHEET 4: Email Scripts ──
       const emailSheet = [
         ['ICM — Outreach Email Scripts | HOT Leads | Batch 1'],
         ['Tone: Friendly & Conversational | Personalised per practice | From: Erum @ Insight Crafts Marketing'],
         [],
-        ['#', 'Business', 'Grade', 'Subject Line', 'Email Body', 'LinkedIn DM', 'Instagram DM', 'Follow Up'],
-        ...baseLeads.map((lead, i) => {
-          const o = outreachMap[lead.bizName.toLowerCase()] || outreachLeads[i] || {}
-          return [
-            i + 1,
-            lead.bizName,
-            o.grade || '',
-            o.subject || '',
-            o.email || '',
-            o.linkedin || '',
-            o.instagram || '',
-            o.followup || '',
-          ]
-        }),
+        ['#', 'Business Name', 'Grade', 'Subject Line', 'Email Body', 'LinkedIn DM', 'Instagram DM', 'Follow Up Day 3'],
+        ...outreachData,
       ]
 
-      // ════════════════════════════════
-      // SHEET 5 — Outreach Tracker
-      // ════════════════════════════════
+      // ── SHEET 5: Outreach Tracker ──
+      // Build from best available data
+      const baseData = scoutData.length > 0 ? scoutData : auditorData
+      const trackerRows = baseData.map(function(row, i) {
+        return [i + 1, row[1] || '', row[6] || row[11] || '', '', '', '—', '—', '—', '—', 'Not Started', '—']
+      })
       const trackerSheet = [
         ['ICM — Outreach Campaign Tracker | Birmingham Dental Practices'],
         ['Update this tracker after every outreach action. Target: HOT leads first, then WARM leads.'],
         [],
         ['#', 'Business Name', 'Priority', 'Contact Name', 'Email', 'Date Sent', 'Follow Up 1', 'Follow Up 2', 'Response', 'Status', 'Notes'],
-        ...baseLeads.map((lead, i) => {
-          const a = auditMap[lead.bizName.toLowerCase()] || {}
-          const s = scorerMap[lead.bizName.toLowerCase()] || {}
-          return [
-            i + 1,
-            lead.bizName,
-            lead.priority || a.leadTemp || '',
-            '',
-            '',
-            '—', '—', '—', '—',
-            'Not Started',
-            '—',
-          ]
-        }),
+        ...trackerRows,
       ]
 
-      // ════════════════════════════════
-      // BUILD WORKBOOK
-      // ════════════════════════════════
       const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(scoutSheet),   '🔍 Niche Scout')
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(auditSheet),   '📋 Lead Audit')
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(scoringSheet), '🎯 Lead Scoring')
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(emailSheet),   '✉ Email Scripts')
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(trackerSheet), '📊 Outreach Tracker')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(scoutSheet),   'Niche Scout')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(auditSheet),   'Lead Audit')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(scoringSheet), 'Lead Scoring')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(emailSheet),   'Email Scripts')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(trackerSheet), 'Outreach Tracker')
 
-      const fileName = `ICM_LeadLens_${new Date().toISOString().slice(0, 10)}.xlsx`
+      const fileName = 'ICM_LeadLens_' + new Date().toISOString().slice(0, 10) + '.xlsx'
       XLSX.writeFile(wb, fileName)
 
     } catch(err) {
@@ -387,7 +172,7 @@ export default function Dashboard({ onLogout }) {
     }
   }
 
-    const importFromPrev = () => {
+      const importFromPrev = () => {
     const prevAgent = AGENTS[activeIdx - 1]
     if (prevAgent && outputs[prevAgent.id]) {
       setInputs(prev => ({ ...prev, [activeId]: outputs[prevAgent.id] }))

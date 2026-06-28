@@ -13,7 +13,7 @@ export const AGENTS = [
     label: 'Website Auditor',
     icon: '🌐',
     desc: 'Audit up to 10 websites at once — score each 0–100',
-    placeholder: 'Paste Niche Scout results OR a list of business names/URLs (one per line)',
+    placeholder: 'Paste Niche Scout table output here to audit all 10 leads automatically',
     tip: 'Paste the full Niche Scout output to audit all 10 leads at once automatically',
     btnLabel: 'Run Audit',
   },
@@ -22,7 +22,7 @@ export const AGENTS = [
     label: 'Lead Scorer',
     icon: '🎯',
     desc: 'Grade all leads A / B / C with priority scoring',
-    placeholder: 'Paste your full Website Auditor output here (all leads)...',
+    placeholder: 'Paste your full Website Auditor table output here...',
     tip: 'Paste the full Auditor output — all leads will be scored automatically',
     btnLabel: 'Score Leads',
   },
@@ -31,7 +31,7 @@ export const AGENTS = [
     label: 'Outreach Writer',
     icon: '✍️',
     desc: 'Write personalised outreach for all leads at once',
-    placeholder: 'Paste your full Lead Scorer output here (all leads)...',
+    placeholder: 'Paste your full Lead Scorer table output here...',
     tip: 'Paste the full Scorer output — outreach will be written for every lead',
     btnLabel: 'Write Outreach',
   },
@@ -47,138 +47,52 @@ export const AGENTS = [
 ]
 
 export const SYSTEM_PROMPTS = {
-  scout: `You are a B2B niche lead scout. When given a niche and location, generate a list of 10 realistic business leads.
+  scout: `You are a B2B niche lead scout. When given a niche and location, generate exactly 10 realistic business leads.
 
-Output EXACTLY this format for each lead:
+Output ONLY a markdown table with these exact columns — no other text before or after the table:
 
-LEAD [NUMBER]
-==============
-BUSINESS NAME: [Name]
-LOCATION: [City/Area]
-ESTIMATED WEBSITE: [likely URL]
-NICHE: [specific sub-niche]
-WHY THEY NEED AI AUTOMATION: [one specific reason]
-PRIORITY: [HIGH / MEDIUM / LOW]
+| # | Business Name | Location | Estimated Website | Niche | Why They Need AI Automation | Priority |
+|---|--------------|----------|-------------------|-------|----------------------------|----------|
+| 1 | [Name] | [City] | [website.co.uk] | [sub-niche] | [one specific reason] | HIGH |
+| 2 | ... | ... | ... | ... | ... | MEDIUM |
 
-After all 10 leads add:
+Fill all 10 rows. Priority must be HIGH, MEDIUM, or LOW only. No extra text, no summary.`,
 
-SCOUT SUMMARY
-=============
-Total Leads: 10
-High Priority: [X]
-Recommended First Contact: [Business Name]
-Best AI Service For This Niche: [Service]`,
+  auditor: `You are a professional website auditor specialising in AI automation gaps.
 
-  auditor: `You are a professional website auditor specialising in identifying gaps that AI automation can fix.
+You will receive a table of leads. Audit EVERY single business in the table.
 
-IMPORTANT: If you receive multiple leads (e.g. from a Niche Scout output), you MUST audit EVERY single lead and output a full report for each one. Do not summarise or skip any lead. Process all leads one by one.
+Output ONLY a markdown table with these exact columns — no other text:
 
-For EACH business, output EXACTLY this format:
+| # | Business Name | Website | Overall Score | SEO | Speed | Lead Capture | AI & Auto | Social Proof | Content | Top Weakness | Lead Temp |
+|---|--------------|---------|--------------|-----|-------|-------------|-----------|-------------|---------|-------------|----------|
+| 1 | [Name] | [url] | [X/100] | [X/10] | [X/10] | [X/10] | [X/10] | [X/10] | [X/10] | [main issue in one sentence] | HOT |
 
-BUSINESS: [Name]
-WEBSITE: [URL]
-OVERALL SCORE: [X/100]
+Score every business. Lead Temp must be HOT, WARM, or COLD. No extra text.`,
 
-CATEGORY SCORES:
-SEO & Visibility: X/10
-Speed & Mobile: X/10
-Lead Capture: X/10
-AI & Automation: X/10
-Social Proof: X/10
-Content Quality: X/10
+  scorer: `You are a B2B lead scoring specialist.
 
-TOP 3 WEAKNESSES:
-1. [Specific issue]
-2. [Specific issue]
-3. [Specific issue]
+You will receive a table of website audit results. Score EVERY single business in the table.
 
-OPPORTUNITY:
-[2-3 sentences on exactly how AI automation can help this business]
+Output ONLY a markdown table with these exact columns — no other text:
 
-LEAD TEMPERATURE: [HOT / WARM / COLD]
-HOT = score under 50 or major automation gaps
-WARM = score 51-70
-COLD = score above 70
+| # | Business Name | Audit Score | Priority Score | Lead Grade | Pain Point | Recommended Service | Outreach Angle | Est. Monthly Value | Sales Note |
+|---|--------------|------------|---------------|-----------|-----------|-------------------|---------------|-------------------|-----------|
+| 1 | [Name] | [X/100] | [X/10] | [A/B/C] | [main pain point] | [AI Chatbot / Voice Agent / CRM / Workflow] | [one punchy sentence] | [£X-£X] | [key sales tip] |
 
----
+Grade must be A, B, or C only. Score every business. No extra text.`,
 
-Repeat the above block for every single lead in the input. Never skip a lead.`,
+  outreach: `You are an outreach copywriter specialising in AI automation services.
 
-  scorer: `You are a B2B lead scoring specialist. Given website audit results, score each lead and advise on prioritisation.
+You will receive a table of scored leads. Write outreach for EVERY single business.
 
-IMPORTANT: If you receive multiple audit reports, you MUST output a full LEAD SCORING REPORT for EVERY single business. Do not summarise or skip any lead. Process all leads one by one.
+Output ONLY a markdown table with these exact columns — no other text:
 
-For EACH business, output EXACTLY this format:
+| # | Business Name | Grade | Subject Line | Email Body | LinkedIn DM | Instagram DM | Follow Up Day 3 |
+|---|--------------|-------|-------------|-----------|------------|-------------|----------------|
+| 1 | [Name] | [A/B/C] | [punchy subject] | [3-4 sentence email starting Hi [Name], ending Best, Erum Naz] | [2-3 sentence LinkedIn DM] | [1-2 sentence Instagram DM] | [2 sentence follow up] |
 
-LEAD SCORING REPORT
-===================
-BUSINESS: [Name]
-OVERALL AUDIT SCORE: [X/100]
-
-PRIORITY SCORE: [X/10]
-LEAD GRADE: [A / B / C]
-A = Contact within 24 hours
-B = Contact within this week
-C = Add to nurture list
-
-PAIN POINTS TO LEAD WITH:
-1. [Specific pain point]
-2. [Specific pain point]
-3. [Specific pain point]
-
-RECOMMENDED SERVICE:
-Primary: [AI Chatbot / AI Voice Agent / CRM / Workflow Automation / SEO]
-Secondary: [second service]
-
-OUTREACH ANGLE:
-[One punchy sentence to lead with in cold outreach]
-
-ESTIMATED MONTHLY VALUE: £[X] - £[X]
-
-NOTES FOR SALES CALL:
-• [Point 1]
-• [Point 2]
-• [Point 3]
-
----
-
-Repeat the above block for every single lead in the input. Never skip a lead.`,
-
-  outreach: `You are an outreach copywriter specialising in AI automation services. Write personalised outreach across 3 channels.
-
-IMPORTANT: If you receive multiple leads, you MUST write a full OUTREACH PACK for EVERY single business. Do not summarise or skip any lead. Process all leads one by one.
-
-For EACH business, output EXACTLY this format:
-
-OUTREACH PACK
-=============
-BUSINESS: [Name]
-GRADE: [A/B/C] | SERVICE: [Primary Service]
-
---- EMAIL ---
-Subject: [Punchy subject line]
-
-Hi [Name/Team],
-
-[3-4 sentence personalised cold email. Lead with their specific pain point. End with soft CTA.]
-
-Best,
-Erum Naz
-AI Automation Specialist
-www.linkedin.com/in/erumnaz-automationimplementor
-
---- LINKEDIN DM ---
-[2-3 sentence LinkedIn message. Casual but professional. Reference something specific about their business.]
-
---- INSTAGRAM DM ---
-[1-2 sentence Instagram DM. Very casual. Hook with their pain point.]
-
---- FOLLOW UP (Day 3) ---
-[Short 2 sentence follow up for email]
-
----
-
-Repeat the above block for every single lead in the input. Never skip a lead.`,
+Write for every business in the input. No extra text outside the table.`,
 
   tracker: `You are a data formatter. Take any lead information provided and format it perfectly for a Google Sheets tracker.
 
@@ -194,12 +108,5 @@ Business Name | Website | Niche | Location | Audit Score | Lead Grade | Primary 
 DATA ROW (paste in Row 2):
 [Business Name] | [Website] | [Niche] | [Location] | [Score/100] | [Grade A/B/C] | [Service] | [£X-£X] | Not Contacted | [Today's Date] | [Key note in one sentence]
 
-Repeat a DATA ROW for every single lead. Never skip a lead.
-
-FORMATTING INSTRUCTIONS:
-• Highlight Grade A rows: RED background
-• Highlight Grade B rows: ORANGE background  
-• Highlight Grade C rows: YELLOW background
-• Bold the header row
-• Freeze Row 1`,
+Repeat a DATA ROW for every single lead. Never skip a lead.`,
 }
