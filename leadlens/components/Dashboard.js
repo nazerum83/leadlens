@@ -49,19 +49,21 @@ export default function Dashboard({ onLogout }) {
   const splitLeads = (text) => {
     const blocks = []
     let current = []
-    const lines = text.split(String.fromCharCode(10))
-    for (const line of lines) {
-      if (/^LEAD \d+/.test(line.trim())) {
-        if (current.length) blocks.push(current.join(String.fromCharCode(10)))
-        current = [line]
-      } else if (/^SCOUT SUMMARY/.test(line.trim())) {
+    const nl = String.fromCharCode(10)
+    const allLines = (text || '').split(nl)
+    for (let i = 0; i < allLines.length; i++) {
+      const line = allLines[i].trim()
+      if (/^LEAD [0-9]+/.test(line)) {
+        if (current.length > 0) blocks.push(current.join(nl))
+        current = [allLines[i]]
+      } else if (/^SCOUT SUMMARY/.test(line)) {
         break
       } else {
-        current.push(line)
+        current.push(allLines[i])
       }
     }
-    if (current.length) blocks.push(current.join(String.fromCharCode(10)))
-    return blocks.filter(b => b.includes("BUSINESS NAME"))
+    if (current.length > 0) blocks.push(current.join(nl))
+    return blocks.filter(function(b) { return b.indexOf('BUSINESS NAME') !== -1 })
   }
 
   const BULK_AGENTS = ['auditor', 'scorer', 'outreach']
@@ -144,7 +146,7 @@ export default function Dashboard({ onLogout }) {
       // Format: LEAD 1 \n============ \n BUSINESS NAME: ...
       // ════════════════════════════════
       const parseScout = (text) => {
-        const blocks = text.split(/(?:^|\n)LEAD\s+\d+/i).filter(b => b.trim())
+        const blocks = text.split(/(?:^|\n)LEAD\s+\d+/i).filter(function(b){return b.trim()})
         return blocks.map((block, i) => ({
           num:      i + 1,
           bizName:  get(block, 'BUSINESS NAME'),
@@ -162,7 +164,7 @@ export default function Dashboard({ onLogout }) {
       // Handles multiple leads if pasted together
       // ════════════════════════════════
       const parseAuditor = (text) => {
-        const blocks = text.split(String.fromCharCode(10))(?:#+\s*)?(?:LEAD\s+\d+|BUSINESS:)/i)
+        const blocks = []
         const results = []
         // re-add the BUSINESS: prefix we split on
         const raw = text.match(/BUSINESS:[^\n]+[\s\S]*?(?=BUSINESS:|$)/gi) || [text]
@@ -192,7 +194,7 @@ export default function Dashboard({ onLogout }) {
       // ════════════════════════════════
       const parseScorer = (text) => {
         // Split on multiple reports if present
-        const blocks = text.split(String.fromCharCode(10)).filter(b => b.trim())
+        const blocks = text.split(/LEAD SCORING REPORT/i).filter(function(b){return b.trim()})
         return blocks.map((block, i) => ({
           num:          i + 1,
           bizName:      get(block, 'BUSINESS'),
@@ -212,7 +214,7 @@ export default function Dashboard({ onLogout }) {
       // Format: OUTREACH PACK \n BUSINESS: X \n --- EMAIL --- ...
       // ════════════════════════════════
       const parseOutreach = (text) => {
-        const blocks = text.split(String.fromCharCode(10)).filter(b => b.trim())
+        const blocks = text.split(/OUTREACH PACK/i).filter(function(b){return b.trim()})
         return blocks.map((block, i) => ({
           num:       i + 1,
           bizName:   get(block, 'BUSINESS'),
