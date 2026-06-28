@@ -47,8 +47,8 @@ export default function Dashboard({ onLogout }) {
 
   // Split scout output into individual lead blocks
   const splitLeads = (text) => {
-    const lines = text.split('
-')
+    const lines = text.split("
+")
     const leads = []
     let current = []
     for (const line of lines) {
