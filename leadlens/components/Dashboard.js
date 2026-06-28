@@ -45,23 +45,61 @@ export default function Dashboard({ onLogout }) {
   const activeIdx = AGENTS.findIndex(a => a.id === activeId)
   const empty = EMPTY_STATES[activeId]
 
+  // Split scout output into individual lead blocks
+  const splitLeads = (text) => {
+    const blocks = text.split(/(?=LEAD\s+\d+)/i).filter(b => b.trim() && /LEAD\s+\d+/i.test(b))
+    return blocks.length > 0 ? blocks : [text]
+  }
+
+  // Agents that should process each lead individually
+  const BULK_AGENTS = ['auditor', 'scorer', 'outreach']
+
+  const callClaude = async (system, message) => {
+    const res = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ system, message }),
+    })
+    const data = await res.json()
+    if (data.error) throw new Error(data.error)
+    return data.result || ''
+  }
+
   const runAgent = async () => {
     const input = inputs[activeId]
     if (!input.trim() || loading[activeId]) return
     setLoading(prev => ({ ...prev, [activeId]: true }))
     setOutputs(prev => ({ ...prev, [activeId]: '' }))
+
     try {
-      const res = await fetch('/api/claude', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ system: SYSTEM_PROMPTS[activeId], message: input }),
-      })
-      const data = await res.json()
-      if (data.error) throw new Error(data.error)
-      setOutputs(prev => ({ ...prev, [activeId]: data.result || '' }))
+      // For bulk agents, split into individual leads and process each one
+      if (BULK_AGENTS.includes(activeId)) {
+        const leads = splitLeads(input)
+
+        if (leads.length > 1) {
+          // Process each lead individually and combine results
+          let combined = ''
+          for (let i = 0; i < leads.length; i++) {
+            const lead = leads[i]
+            setOutputs(prev => ({ ...prev, [activeId]: prev[activeId] + `\n⏳ Processing lead ${i + 1} of ${leads.length}...\n` }))
+            const result = await callClaude(SYSTEM_PROMPTS[activeId], lead)
+            combined += result + '\n\n---\n\n'
+            setOutputs(prev => ({ ...prev, [activeId]: combined }))
+          }
+        } else {
+          // Single lead — normal call
+          const result = await callClaude(SYSTEM_PROMPTS[activeId], input)
+          setOutputs(prev => ({ ...prev, [activeId]: result }))
+        }
+      } else {
+        // Scout, Tracker — single API call as normal
+        const result = await callClaude(SYSTEM_PROMPTS[activeId], input)
+        setOutputs(prev => ({ ...prev, [activeId]: result }))
+      }
     } catch (err) {
       setOutputs(prev => ({ ...prev, [activeId]: 'Error: ' + err.message }))
     }
+
     setLoading(prev => ({ ...prev, [activeId]: false }))
   }
 
