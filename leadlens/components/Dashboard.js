@@ -482,7 +482,7 @@ export default function Dashboard({ onLogout }) {
                       <div className={styles.loadSub}>This usually takes 5–15 seconds</div>
                     </div>
                   ) : hasOutput ? (
-                    {renderOutput(outputs[activeId])}
+                    <div>{renderOutput(outputs[activeId])}</div>
                   ) : (
                     <div className={styles.emptyState}>
                       <div className={styles.emptyIconWrap}>
