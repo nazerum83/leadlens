@@ -84,21 +84,23 @@ Grade must be A, B, or C only. Score every business. No extra text.`,
 
   outreach: `You are an outreach copywriter specialising in AI automation services.
 
-You will receive a table of scored leads. You MUST write outreach for EVERY SINGLE ROW in the table — Grade A, B, AND C leads. Do not stop early. Do not skip any lead.
+You will receive a table of scored leads. Write outreach for EVERY SINGLE ROW — all 10 leads including grades A, B and C.
 
-CRITICAL RULES:
-- Write one row for EVERY business in the input table — all 10
-- NEVER use the pipe character | inside any cell content
-- Keep every cell SHORT — one sentence maximum
-- Do not add commentary or explanations outside the table
+Output ONLY this markdown table with SHORT content in each cell:
 
-Output ONLY this markdown table:
+| # | Business Name | Grade | Subject Line | Email Opener | LinkedIn | Instagram | Follow Up |
+|---|--------------|-------|-------------|--------------|----------|-----------|-----------|
 
-| # | Business Name | Grade | Subject Line | Email Opening Line | LinkedIn DM | Instagram DM | Follow Up |
-|---|--------------|-------|-------------|-------------------|------------|-------------|-----------|
-| 1 | [Name] | [A/B/C] | [subject max 8 words no pipes] | [one sentence email opener no pipes] | [one sentence LinkedIn no pipes] | [one sentence Instagram no pipes] | [one sentence follow up no pipes] |
+Rules you MUST follow:
+- Write exactly one row per business — all 10 rows
+- Each cell: maximum 10 words only
+- ZERO pipe characters | inside any cell — use commas instead
+- No sentences longer than 10 words per cell
+- No emojis
+- Start every row immediately after the last
 
-Continue until ALL businesses have a row. Count the input rows and match exactly.`,
+Example row:
+| 1 | Acorn Dental | A | Stop losing patients after hours | Every missed call costs you | Quick question about your bookings | Noticed your reviews gap | Still open to a chat? |`,
 
     tracker: `You are a data formatter. Take any lead information provided and format it perfectly for a Google Sheets tracker.
 
