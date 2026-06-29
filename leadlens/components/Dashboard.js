@@ -157,47 +157,75 @@ export default function Dashboard({ onLogout }) {
 
       const date = new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
 
+      // ── Master lead list from Scout (guaranteed 10 leads) ──
+      const masterLeads = scoutData.length > 0 ? scoutData : auditorData
+
+      // Build lookup maps by business name for other agents
+      const auditMap = {}
+      auditorData.forEach(function(row) { if(row[1]) auditMap[row[1].toLowerCase().trim()] = row })
+      const scorerMap = {}
+      scorerData.forEach(function(row) { if(row[1]) scorerMap[row[1].toLowerCase().trim()] = row })
+      const outreachMap = {}
+      outreachData.forEach(function(row) { if(row[1]) outreachMap[row[1].toLowerCase().trim()] = row })
+
       // ── SHEET 1: Niche Scout ──
       const scoutSheet = [
         ['ICM — Niche Scout Results | AI Lead Discovery'],
         ['Scout Date: ' + date + ' | Powered by Claude AI | Agent: Niche Scout'],
         [],
         ['#', 'Business Name', 'Location', 'Estimated Website', 'Niche', 'Why They Need AI Automation', 'Priority'],
-        ...scoutData,
+        ...masterLeads,
       ]
 
-      // ── SHEET 2: Lead Audit ──
+      // ── SHEET 2: Lead Audit — all 10 leads, fill from auditor data ──
+      const auditRows = masterLeads.map(function(lead, i) {
+        const biz = lead[1] || ''
+        const match = auditMap[biz.toLowerCase().trim()] || auditorData[i] || []
+        return [i+1, biz, match[2]||'', match[3]||'', match[4]||'', match[5]||'', match[6]||'', match[7]||'', match[8]||'', match[9]||'', match[10]||'', match[11]||lead[6]||'']
+      })
       const auditSheet = [
         ['ICM — AI Automation Lead Audit | Birmingham Dental Practices'],
         ['Batch 1 of ? | Audit Date: ' + date + ' | Services: AI Chatbot · AI Voice Agent · CRM · Workflow Automation'],
         [],
         ['#', 'Business Name', 'Website', 'Overall Score', 'SEO', 'Speed', 'Lead Capture', 'AI & Auto', 'Social Proof', 'Content', 'Top Weakness', 'Lead Temp'],
-        ...auditorData,
+        ...auditRows,
       ]
 
-      // ── SHEET 3: Lead Scoring ──
+      // ── SHEET 3: Lead Scoring — all 10 leads, fill from scorer data ──
+      const scoringRows = masterLeads.map(function(lead, i) {
+        const biz = lead[1] || ''
+        const match = scorerMap[biz.toLowerCase().trim()] || scorerData[i] || []
+        return [i+1, biz, match[2]||'', match[3]||'', match[4]||'', match[5]||'', match[6]||'', match[7]||'', match[8]||'', match[9]||'']
+      })
       const scoringSheet = [
         ['ICM — Lead Scoring Report | AI Automation Opportunity'],
         ['Scored: ' + date + ' | Powered by Claude AI | Agent: Lead Scorer'],
         [],
         ['#', 'Business Name', 'Audit Score', 'Priority Score', 'Lead Grade', 'Pain Point', 'Recommended Service', 'Outreach Angle', 'Est. Monthly Value', 'Sales Note'],
-        ...scorerData,
+        ...scoringRows,
       ]
 
-      // ── SHEET 4: Email Scripts ──
+      // ── SHEET 4: Email Scripts — all 10 leads, fill from outreach data ──
+      const emailRows = masterLeads.map(function(lead, i) {
+        const biz = lead[1] || ''
+        const match = outreachMap[biz.toLowerCase().trim()] || outreachData[i] || []
+        return [i+1, biz, match[2]||'', match[3]||'', match[4]||'', match[5]||'', match[6]||'', match[7]||'']
+      })
       const emailSheet = [
         ['ICM — Outreach Email Scripts | HOT Leads | Batch 1'],
         ['Tone: Friendly & Conversational | Personalised per practice | From: Erum @ Insight Crafts Marketing'],
         [],
-        ['#', 'Business Name', 'Grade', 'Subject Line', 'Email Body', 'LinkedIn DM', 'Instagram DM', 'Follow Up Day 3'],
-        ...outreachData,
+        ['#', 'Business Name', 'Grade', 'Subject Line', 'Email Opener', 'LinkedIn DM', 'Instagram DM', 'Follow Up'],
+        ...emailRows,
       ]
 
-      // ── SHEET 5: Outreach Tracker ──
-      // Build from best available data
-      const baseData = scoutData.length > 0 ? scoutData : auditorData
-      const trackerRows = baseData.map(function(row, i) {
-        return [i + 1, row[1] || '', row[6] || row[11] || '', '', '', '—', '—', '—', '—', 'Not Started', '—']
+      // ── SHEET 5: Outreach Tracker — all 10 leads always ──
+      const trackerRows = masterLeads.map(function(lead, i) {
+        const biz = lead[1] || ''
+        const priority = lead[6] || ''
+        const scorerMatch = scorerMap[biz.toLowerCase().trim()] || scorerData[i] || []
+        const grade = scorerMatch[4] || ''
+        return [i+1, biz, priority, '', '', '—', '—', '—', '—', 'Not Started', '—']
       })
       const trackerSheet = [
         ['ICM — Outreach Campaign Tracker | Birmingham Dental Practices'],
