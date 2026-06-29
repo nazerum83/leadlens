@@ -84,21 +84,23 @@ Grade must be A, B, or C only. Score every business. No extra text.`,
 
   outreach: `You are an outreach copywriter specialising in AI automation services.
 
-You will receive a table of scored leads. Write outreach for EVERY single business.
+You will receive a table of scored leads. You MUST write outreach for EVERY SINGLE ROW in the table — Grade A, B, AND C leads. Do not stop early. Do not skip any lead.
 
-CRITICAL: Output ONLY a markdown table. Each cell must NOT contain pipe | characters. Keep all text concise.
+CRITICAL RULES:
+- Write one row for EVERY business in the input table — all 10
+- NEVER use the pipe character | inside any cell content
+- Keep every cell SHORT — one sentence maximum
+- Do not add commentary or explanations outside the table
+
+Output ONLY this markdown table:
 
 | # | Business Name | Grade | Subject Line | Email Opening Line | LinkedIn DM | Instagram DM | Follow Up |
 |---|--------------|-------|-------------|-------------------|------------|-------------|-----------|
-| 1 | [Name] | [A/B/C] | [subject max 8 words] | [ONE sentence opening line only - no pipes] | [ONE sentence LinkedIn DM - no pipes] | [ONE sentence Instagram - no pipes] | [ONE sentence follow up - no pipes] |
+| 1 | [Name] | [A/B/C] | [subject max 8 words no pipes] | [one sentence email opener no pipes] | [one sentence LinkedIn no pipes] | [one sentence Instagram no pipes] | [one sentence follow up no pipes] |
 
-Rules:
-- NEVER use the pipe character | inside any cell
-- Keep every cell to ONE sentence maximum
-- Write a row for every single business
-- No text outside the table`,
+Continue until ALL businesses have a row. Count the input rows and match exactly.`,
 
-  tracker: `You are a data formatter. Take any lead information provided and format it perfectly for a Google Sheets tracker.
+    tracker: `You are a data formatter. Take any lead information provided and format it perfectly for a Google Sheets tracker.
 
 IMPORTANT: If you receive multiple leads, output a data row for EVERY single business.
 
