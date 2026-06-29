@@ -70,35 +70,38 @@ Output ONLY a markdown table with these exact columns — no other text:
 
 Score every business. Lead Temp must be HOT, WARM, or COLD. No extra text.`,
 
-  scorer: `You are a B2B lead scoring specialist.
+  scorer: `You are a B2B lead scoring specialist. Given website audit results, score each lead.
 
-You will receive a table of website audit results. Score EVERY single business in the table.
+You will receive a table of leads. Score EVERY single business.
 
-Output ONLY a markdown table with these exact columns — no other text:
+Use tilde ~ as the column separator (NOT pipe |). This allows detailed content without formatting issues.
 
-| # | Business Name | Audit Score | Priority Score | Lead Grade | Pain Point | Recommended Service | Outreach Angle | Est. Monthly Value | Sales Note |
-|---|--------------|------------|---------------|-----------|-----------|-------------------|---------------|-------------------|-----------|
-| 1 | [Name] | [X/100] | [X/10] | [A/B/C] | [main pain point] | [AI Chatbot / Voice Agent / CRM / Workflow] | [one punchy sentence] | [£X-£X] | [key sales tip] |
+Output EXACTLY this format — one row per business, all 10:
 
-Grade must be A, B, or C only. Score every business. No extra text.`,
-
-  outreach: `You are an outreach copywriter specialising in AI automation services.
-
-You will receive a table of scored leads. Write outreach for EVERY SINGLE ROW — all 10 leads including grades A, B and C.
-
-IMPORTANT: Use tilde ~ as the column separator (NOT pipe |). This allows email content to be written freely.
-
-Output EXACTLY this format — one row per lead, all 10 leads:
-
-# ~ Business Name ~ Grade ~ Subject Line ~ Email Body ~ LinkedIn DM ~ Instagram DM ~ Follow Up
---- ~ --- ~ --- ~ --- ~ --- ~ --- ~ --- ~ ---
-1 ~ [Name] ~ [A/B/C] ~ [Subject line] ~ [Hi [Name], 2-3 sentences ending Best, Erum Naz] ~ [2 sentence LinkedIn DM] ~ [1 sentence Instagram] ~ [1 sentence follow up]
+# ~ Business Name ~ Audit Score ~ Priority Score ~ Lead Grade ~ Pain Point ~ Recommended Service ~ Outreach Angle ~ Est. Monthly Value ~ Sales Note
+--- ~ --- ~ --- ~ --- ~ --- ~ --- ~ --- ~ --- ~ --- ~ ---
+1 ~ [Name] ~ [X/100] ~ [X/10] ~ [A/B/C] ~ [pain point] ~ [service] ~ [angle] ~ [£X-£X] ~ [sales note]
 
 Rules:
-- Use ~ as separator between every column
-- Write ALL 10 rows — do not skip any lead
-- All grades A, B and C get rows
-- You may use any punctuation freely inside cells`,
+- Use ~ as separator — never use pipe | character
+- Grade must be A, B, or C only
+- Write ALL 10 rows
+- Do not skip any lead`,
+
+    outreach: `You are an outreach copywriter specialising in AI automation services.
+
+You will receive a table of scored leads. 
+
+BEFORE writing anything, count the exact number of data rows in the input table (not counting the header row). You MUST write exactly that many rows of outreach — no more, no less.
+
+Use tilde ~ as the column separator.
+
+Output format:
+# ~ Business Name ~ Grade ~ Subject Line ~ Email Body ~ LinkedIn DM ~ Instagram DM ~ Follow Up
+--- ~ --- ~ --- ~ --- ~ --- ~ --- ~ --- ~ ---
+1 ~ [Name] ~ [grade] ~ [subject] ~ [email body] ~ [linkedin] ~ [instagram] ~ [followup]
+
+Continue numbering until you have written a row for EVERY business in the input — including Grade B and Grade C leads. Do not stop at Grade A. Write for ALL grades.`,
 
     tracker: `You are a data formatter. Take any lead information provided and format it perfectly for a Google Sheets tracker.
 

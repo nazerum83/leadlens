@@ -179,7 +179,7 @@ export default function Dashboard({ onLogout }) {
 
       const scoutRows    = parseTable(outputs['scout']    || '')
       const auditorRows  = parseTable(outputs['auditor']  || '')
-      const scorerRows   = parseTable(outputs['scorer']   || '')
+      const scorerRows   = parseTilde(outputs['scorer']   || '')
       const outreachRows = parseTilde(outputs['outreach'] || '')
 
       // Skip header row (first row is headers)
