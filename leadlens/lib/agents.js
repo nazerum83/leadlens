@@ -86,21 +86,19 @@ Grade must be A, B, or C only. Score every business. No extra text.`,
 
 You will receive a table of scored leads. Write outreach for EVERY SINGLE ROW — all 10 leads including grades A, B and C.
 
-Output ONLY this markdown table with SHORT content in each cell:
+IMPORTANT: Use tilde ~ as the column separator (NOT pipe |). This allows email content to be written freely.
 
-| # | Business Name | Grade | Subject Line | Email Opener | LinkedIn | Instagram | Follow Up |
-|---|--------------|-------|-------------|--------------|----------|-----------|-----------|
+Output EXACTLY this format — one row per lead, all 10 leads:
 
-Rules you MUST follow:
-- Write exactly one row per business — all 10 rows
-- Each cell: maximum 10 words only
-- ZERO pipe characters | inside any cell — use commas instead
-- No sentences longer than 10 words per cell
-- No emojis
-- Start every row immediately after the last
+# ~ Business Name ~ Grade ~ Subject Line ~ Email Body ~ LinkedIn DM ~ Instagram DM ~ Follow Up
+--- ~ --- ~ --- ~ --- ~ --- ~ --- ~ --- ~ ---
+1 ~ [Name] ~ [A/B/C] ~ [Subject line] ~ [Hi [Name], 2-3 sentences ending Best, Erum Naz] ~ [2 sentence LinkedIn DM] ~ [1 sentence Instagram] ~ [1 sentence follow up]
 
-Example row:
-| 1 | Acorn Dental | A | Stop losing patients after hours | Every missed call costs you | Quick question about your bookings | Noticed your reviews gap | Still open to a chat? |`,
+Rules:
+- Use ~ as separator between every column
+- Write ALL 10 rows — do not skip any lead
+- All grades A, B and C get rows
+- You may use any punctuation freely inside cells`,
 
     tracker: `You are a data formatter. Take any lead information provided and format it perfectly for a Google Sheets tracker.
 

@@ -117,29 +117,62 @@ export default function Dashboard({ onLogout }) {
       // ── Parse markdown table helper ──
       const parseTable = (text) => {
         if (!text) return []
-        const lines = text.split(String.fromCharCode(10))
+        const nl = String.fromCharCode(10)
+        const lines = text.split(nl)
         const rows = []
         let headerCols = 0
+
+        const parseLine = (line, numCols) => {
+          // Split only on the first (numCols+1) pipe characters
+          // Everything after the last expected pipe goes into the last cell
+          const result = []
+          let remaining = line.trim()
+          if (remaining.startsWith('|')) remaining = remaining.slice(1)
+          for (let col = 0; col < numCols - 1; col++) {
+            const pipeIdx = remaining.indexOf('|')
+            if (pipeIdx === -1) { result.push(remaining.trim()); remaining = ''; break }
+            result.push(remaining.slice(0, pipeIdx).trim())
+            remaining = remaining.slice(pipeIdx + 1)
+          }
+          // Last cell gets everything remaining (strip trailing pipe)
+          if (remaining) {
+            const lastPipe = remaining.lastIndexOf('|')
+            result.push(lastPipe > -1 ? remaining.slice(0, lastPipe).trim() : remaining.trim())
+          }
+          return result
+        }
+
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i].trim()
           if (!line.startsWith('|')) continue
+          // Skip separator rows (only dashes and pipes)
           if (/^[|\s\-:]+$/.test(line)) continue
-          const cells = line.split('|').map(function(c) { return c.trim() }).filter(function(c, idx, arr) { return idx > 0 && idx < arr.length - 1 })
-          if (cells.length < 2) continue
-          // First valid row sets expected column count
           if (headerCols === 0) {
-            headerCols = cells.length
-            rows.push(cells)
-          } else if (cells.length >= headerCols) {
-            // If too many cells (pipe in content), merge extra cells into last column
-            if (cells.length > headerCols) {
-              const merged = cells.slice(0, headerCols - 1)
-              merged.push(cells.slice(headerCols - 1).join(' '))
-              rows.push(merged)
-            } else {
-              rows.push(cells)
-            }
+            // First row: count columns by counting pipes
+            const rawCells = line.split('|').filter(function(c, idx, arr) { return idx > 0 && idx < arr.length - 1 })
+            headerCols = rawCells.length
+            rows.push(rawCells.map(function(c) { return c.trim() }))
+          } else {
+            // Data rows: parse exactly headerCols columns
+            const cells = parseLine(line, headerCols)
+            if (cells.length > 0) rows.push(cells)
           }
+        }
+        return rows
+      }
+
+      // Parse tilde-separated outreach output
+      const parseTilde = (text) => {
+        if (!text) return []
+        const nl = String.fromCharCode(10)
+        const lines = text.split(nl)
+        const rows = []
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim()
+          if (!line.includes('~')) continue
+          if (/^[-~\s]+$/.test(line)) continue // skip separator rows
+          const cells = line.split('~').map(function(c) { return c.trim() })
+          if (cells.length > 1) rows.push(cells)
         }
         return rows
       }
@@ -147,7 +180,7 @@ export default function Dashboard({ onLogout }) {
       const scoutRows    = parseTable(outputs['scout']    || '')
       const auditorRows  = parseTable(outputs['auditor']  || '')
       const scorerRows   = parseTable(outputs['scorer']   || '')
-      const outreachRows = parseTable(outputs['outreach'] || '')
+      const outreachRows = parseTilde(outputs['outreach'] || '')
 
       // Skip header row (first row is headers)
       const scoutData    = scoutRows.length   > 1 ? scoutRows.slice(1)    : []
@@ -215,7 +248,7 @@ export default function Dashboard({ onLogout }) {
         ['ICM — Outreach Email Scripts | HOT Leads | Batch 1'],
         ['Tone: Friendly & Conversational | Personalised per practice | From: Erum @ Insight Crafts Marketing'],
         [],
-        ['#', 'Business Name', 'Grade', 'Subject Line', 'Email Opener', 'LinkedIn DM', 'Instagram DM', 'Follow Up'],
+        ['#', 'Business Name', 'Grade', 'Subject Line', 'LinkedIn DM', 'Instagram DM', 'Follow Up'],
         ...emailRows,
       ]
 
@@ -254,6 +287,39 @@ export default function Dashboard({ onLogout }) {
   const renderOutput = (text) => {
     if (!text) return null
     const lines = text.split(String.fromCharCode(10))
+
+    // Detect tilde-separated format (outreach)
+    const isTilde = lines.some(l => l.includes('~') && l.split('~').length > 3)
+    
+    if (isTilde) {
+      const rows = lines
+        .filter(l => l.includes('~') && !/^[-~\s]+$/.test(l.trim()))
+        .map(l => l.split('~').map(c => c.trim()))
+        .filter(r => r.length > 1)
+      if (rows.length > 0) {
+        const headers = rows[0]
+        const dataRows = rows.slice(1)
+        return (
+          <div style={{overflowX:'auto',width:'100%'}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px',color:'var(--text-primary,#e2e8f0)'}}>
+              <thead>
+                <tr style={{backgroundColor:'#2AABB8'}}>
+                  {headers.map((h,i) => <th key={i} style={{padding:'8px 10px',textAlign:'left',fontWeight:'bold',color:'#fff',whiteSpace:'nowrap',borderRight:'1px solid rgba(255,255,255,0.2)'}}>{h}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {dataRows.map((row,ri) => (
+                  <tr key={ri} style={{backgroundColor:ri%2===0?'rgba(255,255,255,0.03)':'rgba(255,255,255,0.06)',borderBottom:'1px solid rgba(255,255,255,0.08)'}}>
+                    {row.map((cell,ci) => <td key={ci} style={{padding:'7px 10px',borderRight:'1px solid rgba(255,255,255,0.05)',maxWidth:'300px',overflow:'hidden',textOverflow:'ellipsis'}} title={cell}>{cell}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      }
+    }
+
     const tableLines = lines.filter(l => l.trim().startsWith('|'))
     
     if (tableLines.length < 2) {
