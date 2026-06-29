@@ -161,18 +161,54 @@ export default function Dashboard({ onLogout }) {
         return rows
       }
 
-      // Parse tilde-separated outreach output
+      // Smart parser for outreach - splits by row number | N | pattern
       const parseTilde = (text) => {
         if (!text) return []
         const nl = String.fromCharCode(10)
-        const lines = text.split(nl)
+        
+        // If tilde format, use tilde parser
+        if (text.includes('~')) {
+          const lines = text.split(nl)
+          const rows = []
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim()
+            if (!line.includes('~')) continue
+            if (/^[-~\s]+$/.test(line)) continue
+            const cells = line.split('~').map(function(c) { return c.trim() })
+            if (cells.length > 1) rows.push(cells)
+          }
+          return rows
+        }
+
+        // Pipe format: split text into blocks by "| N |" row number pattern
+        const blocks = text.split(/(?=\|\s*\d+\s*\|)/g).filter(function(b) { return b.trim() })
         const rows = []
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim()
-          if (!line.includes('~')) continue
-          if (/^[-~\s]+$/.test(line)) continue // skip separator rows
-          const cells = line.split('~').map(function(c) { return c.trim() })
-          if (cells.length > 1) rows.push(cells)
+        
+        // Get header row first
+        const headerMatch = text.match(/^\|[^\n]+\|/m)
+        if (headerMatch) {
+          const headerCells = headerMatch[0].split('|').map(function(c) { return c.trim() }).filter(function(c) { return c })
+          rows.push(headerCells)
+        }
+
+        // Each block starting with | N | is one lead row
+        for (let i = 0; i < blocks.length; i++) {
+          const block = blocks[i].trim()
+          if (!/^\|\s*\d+\s*\|/.test(block)) continue
+          // Extract fields: everything between the FIRST 8 pipes
+          // Split by | but only for first 8 occurrences
+          const parts = []
+          let rest = block.slice(1) // remove leading |
+          for (let col = 0; col < 7; col++) {
+            const idx = rest.indexOf('|')
+            if (idx === -1) break
+            parts.push(rest.slice(0, idx).trim())
+            rest = rest.slice(idx + 1)
+          }
+          // Last cell = everything remaining until next newline row
+          const lastCell = rest.split(nl)[0].replace(/\|\s*$/, '').trim()
+          parts.push(lastCell)
+          if (parts.length > 1) rows.push(parts)
         }
         return rows
       }
