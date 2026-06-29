@@ -172,7 +172,71 @@ export default function Dashboard({ onLogout }) {
     }
   }
 
-      const importFromPrev = () => {
+      // Render markdown table as HTML table
+  const renderOutput = (text) => {
+    if (!text) return null
+    const lines = text.split(String.fromCharCode(10))
+    const tableLines = lines.filter(l => l.trim().startsWith('|'))
+    
+    if (tableLines.length < 2) {
+      return <pre className={styles.outputText}>{text}</pre>
+    }
+
+    const rows = tableLines
+      .filter(l => !/^\|[\s\-:|]+\|/.test(l.trim()))
+      .map(l => l.split('|').map(c => c.trim()).filter((c, i, a) => i > 0 && i < a.length - 1))
+
+    if (rows.length === 0) return <pre className={styles.outputText}>{text}</pre>
+
+    const headers = rows[0]
+    const dataRows = rows.slice(1)
+
+    return (
+      <div style={{overflowX: 'auto', width: '100%'}}>
+        <table style={{
+          width: '100%', borderCollapse: 'collapse', fontSize: '12px',
+          color: 'var(--text-primary, #e2e8f0)'
+        }}>
+          <thead>
+            <tr style={{backgroundColor: 'var(--teal, #2AABB8)'}}>
+              {headers.map((h, i) => (
+                <th key={i} style={{
+                  padding: '8px 10px', textAlign: 'left', fontWeight: 'bold',
+                  color: '#fff', whiteSpace: 'nowrap', borderRight: '1px solid rgba(255,255,255,0.2)'
+                }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {dataRows.map((row, ri) => (
+              <tr key={ri} style={{
+                backgroundColor: ri % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)',
+                borderBottom: '1px solid rgba(255,255,255,0.08)'
+              }}>
+                {row.map((cell, ci) => {
+                  const isPriority = headers[ci] === 'Priority' || headers[ci] === 'Lead Temp' || headers[ci] === 'Lead Grade'
+                  const color = cell === 'HIGH' || cell === 'HOT' || cell === 'A' ? '#4ade80'
+                    : cell === 'MEDIUM' || cell === 'WARM' || cell === 'B' ? '#fbbf24'
+                    : cell === 'LOW' || cell === 'COLD' || cell === 'C' ? '#f87171' : null
+                  return (
+                    <td key={ci} style={{
+                      padding: '7px 10px',
+                      borderRight: '1px solid rgba(255,255,255,0.05)',
+                      maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis',
+                      color: (isPriority && color) ? color : 'inherit',
+                      fontWeight: (isPriority && color) ? 'bold' : 'normal'
+                    }} title={cell}>{cell}</td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  const importFromPrev = () => {
     const prevAgent = AGENTS[activeIdx - 1]
     if (prevAgent && outputs[prevAgent.id]) {
       setInputs(prev => ({ ...prev, [activeId]: outputs[prevAgent.id] }))
@@ -418,7 +482,7 @@ export default function Dashboard({ onLogout }) {
                       <div className={styles.loadSub}>This usually takes 5–15 seconds</div>
                     </div>
                   ) : hasOutput ? (
-                    <pre className={styles.outputText}>{outputs[activeId]}</pre>
+                    {renderOutput(outputs[activeId])}
                   ) : (
                     <div className={styles.emptyState}>
                       <div className={styles.emptyIconWrap}>
