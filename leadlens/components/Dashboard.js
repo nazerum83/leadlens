@@ -62,8 +62,43 @@ export default function Dashboard({ onLogout }) {
     setLoading(prev => ({ ...prev, [activeId]: true }))
     setOutputs(prev => ({ ...prev, [activeId]: '' }))
     try {
-      const result = await callClaude(SYSTEM_PROMPTS[activeId], input)
-      setOutputs(prev => ({ ...prev, [activeId]: result }))
+      // For outreach writer, split table into batches of 3 rows to avoid token limits
+      if (activeId === 'outreach') {
+        const nl = String.fromCharCode(10)
+        const lines = input.split(nl)
+        const headerLines = lines.filter(l => l.trim().startsWith('|') && (lines.indexOf(l) <= 1 || /^[|\s\-:]+$/.test(l.trim())))
+        const dataLines = lines.filter(l => l.trim().startsWith('|') && !/^[|\s\-:]+$/.test(l.trim()))
+        const headerRow = dataLines[0] || ''
+        const dataRows = dataLines.slice(1)
+
+        if (dataRows.length > 3) {
+          // Process in batches of 3
+          let allResults = ''
+          let firstHeader = true
+          for (let i = 0; i < dataRows.length; i += 3) {
+            const batch = dataRows.slice(i, i + 3)
+            const batchInput = headerRow + nl + batch.join(nl)
+            setOutputs(prev => ({ ...prev, [activeId]: prev[activeId] + nl + '⏳ Processing leads ' + (i+1) + '-' + Math.min(i+3, dataRows.length) + '...' + nl }))
+            const result = await callClaude(SYSTEM_PROMPTS[activeId], batchInput)
+            // For first batch keep header, for subsequent batches skip header row
+            const resultLines = result.split(nl)
+            if (firstHeader) {
+              allResults += result + nl
+              firstHeader = false
+            } else {
+              const dataOnly = resultLines.filter(l => l.trim().startsWith('|') && !/^[|\s\-:]+$/.test(l.trim())).slice(1)
+              allResults += dataOnly.join(nl) + nl
+            }
+            setOutputs(prev => ({ ...prev, [activeId]: allResults }))
+          }
+        } else {
+          const result = await callClaude(SYSTEM_PROMPTS[activeId], input)
+          setOutputs(prev => ({ ...prev, [activeId]: result }))
+        }
+      } else {
+        const result = await callClaude(SYSTEM_PROMPTS[activeId], input)
+        setOutputs(prev => ({ ...prev, [activeId]: result }))
+      }
     } catch (err) {
       setOutputs(prev => ({ ...prev, [activeId]: 'Error: ' + err.message }))
     }
@@ -84,12 +119,27 @@ export default function Dashboard({ onLogout }) {
         if (!text) return []
         const lines = text.split(String.fromCharCode(10))
         const rows = []
+        let headerCols = 0
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i].trim()
           if (!line.startsWith('|')) continue
-          if (/^[|\s\-:]+$/.test(line)) continue // skip separator rows
+          if (/^[|\s\-:]+$/.test(line)) continue
           const cells = line.split('|').map(function(c) { return c.trim() }).filter(function(c, idx, arr) { return idx > 0 && idx < arr.length - 1 })
-          if (cells.length > 1) rows.push(cells)
+          if (cells.length < 2) continue
+          // First valid row sets expected column count
+          if (headerCols === 0) {
+            headerCols = cells.length
+            rows.push(cells)
+          } else if (cells.length >= headerCols) {
+            // If too many cells (pipe in content), merge extra cells into last column
+            if (cells.length > headerCols) {
+              const merged = cells.slice(0, headerCols - 1)
+              merged.push(cells.slice(headerCols - 1).join(' '))
+              rows.push(merged)
+            } else {
+              rows.push(cells)
+            }
+          }
         }
         return rows
       }

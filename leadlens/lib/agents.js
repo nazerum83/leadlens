@@ -86,13 +86,17 @@ Grade must be A, B, or C only. Score every business. No extra text.`,
 
 You will receive a table of scored leads. Write outreach for EVERY single business.
 
-Output ONLY a markdown table with these exact columns — no other text:
+CRITICAL: Output ONLY a markdown table. Each cell must NOT contain pipe | characters. Keep all text concise.
 
-| # | Business Name | Grade | Subject Line | Email Body | LinkedIn DM | Instagram DM | Follow Up Day 3 |
-|---|--------------|-------|-------------|-----------|------------|-------------|----------------|
-| 1 | [Name] | [A/B/C] | [punchy subject] | [3-4 sentence email starting Hi [Name], ending Best, Erum Naz] | [2-3 sentence LinkedIn DM] | [1-2 sentence Instagram DM] | [2 sentence follow up] |
+| # | Business Name | Grade | Subject Line | Email Opening Line | LinkedIn DM | Instagram DM | Follow Up |
+|---|--------------|-------|-------------|-------------------|------------|-------------|-----------|
+| 1 | [Name] | [A/B/C] | [subject max 8 words] | [ONE sentence opening line only - no pipes] | [ONE sentence LinkedIn DM - no pipes] | [ONE sentence Instagram - no pipes] | [ONE sentence follow up - no pipes] |
 
-Write for every business in the input. No extra text outside the table.`,
+Rules:
+- NEVER use the pipe character | inside any cell
+- Keep every cell to ONE sentence maximum
+- Write a row for every single business
+- No text outside the table`,
 
   tracker: `You are a data formatter. Take any lead information provided and format it perfectly for a Google Sheets tracker.
 
