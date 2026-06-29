@@ -193,7 +193,9 @@ export default function Dashboard({ onLogout }) {
 
         // Each block starting with | N | is one lead row
         for (let i = 0; i < blocks.length; i++) {
-          const block = blocks[i].trim()
+          // ✅ FIX: Join all newlines within the block so multi-line email bodies
+          // don't break the column extraction — treat the whole block as one line
+          const block = blocks[i].replace(/\n/g, ' ').trim()
           if (!/^\|\s*\d+\s*\|/.test(block)) continue
           // Extract fields: everything between the FIRST 8 pipes
           // Split by | but only for first 8 occurrences
@@ -205,8 +207,8 @@ export default function Dashboard({ onLogout }) {
             parts.push(rest.slice(0, idx).trim())
             rest = rest.slice(idx + 1)
           }
-          // Last cell = everything remaining until next newline row
-          const lastCell = rest.split(nl)[0].replace(/\|\s*$/, '').trim()
+          // Last cell = everything remaining (trailing pipe stripped)
+          const lastCell = rest.replace(/\|\s*$/, '').trim()
           parts.push(lastCell)
           if (parts.length > 1) rows.push(parts)
         }
